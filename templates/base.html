@@ -54,7 +54,11 @@
       <div class="row">
         {% for record in records %}
         <div class="one-third column" id="{{record.IRN}}">
-          <img src="/static/thumbs/{{record.IRN}}_{{record.image_0.image_0_irn}}.jpg" style="width:100%" />
+          <div class="slider">
+            {% for i in record.number_of_images %}
+              <img src="/static/thumbs/{{record.IRN}}_{{record.image_0.image_0_irn}}.jpg" style="width:100%" />
+            {% endfor %}
+          </div>
           <h2>{{record.title|e}}</h2>
           <p class="caption">{{record.creator|e}}, {{record.date|e}}</p>
           <p>
