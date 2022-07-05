@@ -1,0 +1,374 @@
+#!/usr/bin/perl -CSDA
+
+# tePapaHtmlThumb
+# Utilises the thumbnail images published to Collections Online to create an html page of collection items published to Collections Online
+# It is run from the Multimedia module. 
+#The following Multimedia fields should be in the Report: IRN, Publish on Internet, Width, Height, and from the Catalogue (Multimedia): Preferred Title, Section, Reg Number, Qualified Name, Catalogue IRN, Summary Data
+# The script uses the Qualified Name and Preferred Title fields to work out which discipline the image belongs to: Natural History or Humanities (if no Title then it's Natural History)
+
+# This script has three output modes:
+# In "full" mode the html includes styling (width/height constrained, background etc) plus Section headings
+
+# In "contact" mode the html utilises the w3 styling sheet and creates a contact sheet with reg numbers and summary data.
+# The contact mode is turned on by including the Identifier (MulIdentifier) Multimedia field in the EMu report.  
+
+# In "unformatted" mode the html does not include any styling - but it does include class names so that a user can style later (.thumb_container, .thumb etc)
+# The unformatted mode is turned on by including the Inserted by (AdmInsertedBy) Multimedia field in the EMu report.  
+
+# If the Identifer field or Insert by field are not in the EMu report the Perl script defaults to full mode.
+
+# Also note that if only one section/collection is present in the records selected, then the headings are not displayed
+
+# The XML input part of this script has been copied from an Axiell provided script.  The remainder is written by Gareth Watkins, Te Papa.
+# Last modified 7/4/2022 by Gareth Watkins
+
+use utf8;
+use strict;
+use XML::Simple;
+use HTML::Entities;
+use IO::File;
+
+
+# Uncomment data dumper etc to output raw xml file for trouble-shooting
+#use Data::Dumper;
+#open(XMLCONTENT,"> /tmp/xmlContent");
+
+my $File;       # File handle
+my $OutFile;    # CSV File handle
+my $tmpfile = `texenv -v | grep tmppath`;
+my $outFilename='tePapaHtmlThumb-' . time() . '.html';  #change to .txt to debug
+my $s = "";
+
+
+if (@ARGV == 0)
+{
+        $File = \*STDIN;
+}
+else
+{
+	# Special bit of processing. There are/were some 
+	# control characters that need to be removed.
+	# If not removed the XMLin method bombs out.
+
+	$tmpfile =~ s/\n//g;
+	($s,$tmpfile) = split("=",$tmpfile);
+	$tmpfile .= "\/" . `echo $$`;
+	$tmpfile =~ s/\n//g;
+	`cp $ARGV[0] $tmpfile`;
+	open(IN,"< $tmpfile") || die "Read of XML file not permitted";
+	open(OUT,"> $ARGV[0]") || die "Write of XML file not permitted";
+	while (<IN>)
+	{
+		$_ =~ s/\ca/ /g;
+		$_ =~ s/\cb/ /g;
+		$_ =~ s/\cc/ /g;
+		$_ =~ s/\cd/ /g;
+		$_ =~ s/\ce/ /g;
+		$_ =~ s/\cf/ /g;
+		$_ =~ s/\cg/ /g;
+		$_ =~ s/\ch/ /g;
+		$_ =~ s/\ci/ /g;
+		$_ =~ s/\cj/ /g;
+		$_ =~ s/\ck/ /g;
+		$_ =~ s/\cl/ /g;
+		$_ =~ s/\cm/ /g;
+		$_ =~ s/\cn/ /g;
+		$_ =~ s/\co/ /g;
+		$_ =~ s/\cp/ /g;
+		$_ =~ s/\cq/ /g;
+		$_ =~ s/\cr/ /g;
+		$_ =~ s/\cs/ /g;
+		$_ =~ s/\ct/ /g;
+		$_ =~ s/\cu/ /g;
+		$_ =~ s/\cv/ /g;
+		$_ =~ s/\cw/ /g;
+		$_ =~ s/\cx/ /g;
+		$_ =~ s/\cy/ /g;
+		$_ =~ s/\cz/ /g;
+		print OUT "$_";
+	}
+	close(IN);
+	close(OUT);
+	`rm $tmpfile`;
+
+        $File = IO::File->new();
+	$File->open($ARGV[0], "<") || die "Error: Cannot open file $ARGV[0] for reading: $!\n";
+}
+
+$OutFile = IO::File->new();
+$OutFile->open($outFilename, '>:encoding(UTF-8)') || die "Error: Cannot open CVS file for writing: $!\n";
+
+my $xml = XMLin($File,ForceArray=>1);
+
+# uncomment xmlcontent if you want to data dump the raw xml file
+# print XMLCONTENT Dumper($xml);
+
+########################### Te Papa developed from here down
+
+#setup our key/value array of all of the collections. 
+my %sections = ("Archaeozoology", "archaeozoology",
+"Archives - Collected", "archives_collected",
+"Archives - Museum", "archives_museum",
+"Art", "art",
+"Birds", "birds",
+"Crustacea", "crustacea",
+"Fish", "fish",
+"Fossil Vertebrates", "fossil_vertebrates",
+"Geology", "geology",
+"History", "history",
+"Insects", "insects",
+"Land Mammals", "land_mammals",
+"Marine Invertebrates", "marine_invertebrates",
+"Marine Mammals", "marine_mammals",
+"Molluscs", "molluscs",
+"Pacific Cultures", "pacific_cultures",
+"Philatelic", "philatelic",
+"Photography", "photography",
+"Plants", "plants",
+"Rare Books", "rare_books",
+"Reptiles and Amphibians", "reptiles_and_amphibians",
+"Taonga Māori", "taonga_maori");
+
+my %media;
+my $arg = '';
+my $flag = 0;
+my $out='';
+my $cr = "\r\n";
+my $count=1;
+my $output_type='full';
+my %section_count;
+
+# Main loop to go through each multimedia record
+foreach $arg (@{$xml->{tuple}}) {
+	
+	my $mm_irn = '';
+	$mm_irn = $arg->{atom}->{irn}->{content};
+
+	my $mm_pub='';
+	$mm_pub = $arg->{atom}->{AdmPublishWebNoPassword}->{content};
+
+	if ($mm_pub ne 'Yes') { next; } #Skip if multimedia is not published
+
+	
+	# Work out the type of output.  We only need to work this out once
+	# If the Inserted By field is present (this field will always be populated with a username) then unformatted output
+	# If the MulIdentifier field is present then contact sheet output
+	# If neither are present then we default to full format output
+	
+	if ($count==1) {
+		if ($arg->{atom}->{AdmInsertedBy}->{content} ne '') {$output_type='unformatted'; }
+		elsif ($arg->{atom}->{MulIdentifier}->{content} ne '') {$output_type='contact'; }
+		}
+	
+	my $cat='';
+	my $cat_irn='';
+	my $reg_number='';
+	my $title='';
+	my $qualified_name='';	
+	my $display_title='';
+	my $summary_data='';
+	my $display_summary_data='';
+	my $section='';
+	my $discipline='';
+	my $html='';
+	my $width=int($arg->{atom}->{ChaImageWidth}->{content});
+	my $height=int($arg->{atom}->{ChaImageHeight}->{content});
+	my $longest_edge='landscape';
+	
+	# Work out if this image is portrait or landscape
+	if ($height > $width) { $longest_edge = 'portrait'; }
+
+	# Each multimedia has two records.  Get just the data from the Collection record (and not the Media Asset record)
+	foreach $cat (@{$arg->{table}->{MulMultiMediaRef_tab}->{tuple}}) {
+		my $cat_type= $cat->{atom}->{ColCategory}->{content};
+		if ($cat_type eq 'Collection') {
+			$cat_irn = $cat->{atom}->{irn}->{content};
+			$section = $cat->{atom}->{ColCollectionType}->{content};
+			$title = $cat->{atom}->{ClaMainTitle}->{content};
+			$summary_data = $cat->{atom}->{SummaryData}->{content};
+			$reg_number = $cat->{atom}->{RegRegistrationNumberString}->{content};
+			$qualified_name = $cat->{table}->{IdeQualifiedName_tab}->{tuple}->[0]->{atom}->{IdeQualifiedName}->{content};
+			if ($title ne '') { $display_title=$title; $discipline='Humanities'; }
+				else { $display_title=$qualified_name; $discipline='Natural History'; }
+			if ($display_title eq '') { $display_title = '[untitled]'; }
+			if ($summary_data ne '') { $display_summary_data=$summary_data; } else { $display_summary_data = $display_title; }
+			my $style='';
+			my $encoded_reg_number=encode_entities($reg_number);
+
+			if ($longest_edge eq 'landscape') { 	
+				$style = "width:140px; max-height:140px;"; 
+				} else { $style = "max-width:140px; height:140px;"; }
+
+if ($output_type eq 'full') {
+# Fully formatted output
+
+$html=<<_DIV_;
+<div id="$count" class="$sections{$section}" style="width:150px; height:150px; margin:1px; overflow:hidden; display:inline-block; float:left; background-color:#DCDCDC;">
+<a href="https://collections.tepapa.govt.nz/object/$cat_irn" title="$encoded_reg_number" target="_blank"><img src="https://media.tepapa.govt.nz/collection/$mm_irn/thumb" style ="$style margin: 5px auto; display:block; border:none;" alt="" /></a>
+</div>
+_DIV_
+} 
+elsif ($output_type eq 'contact') {
+# Contact sheet output
+
+# Limit the summary data to a fixed length
+my $text_limit=200;
+if (length($display_summary_data) > $text_limit) {
+	$display_summary_data = substr($display_summary_data,0,$text_limit) . '...';
+	}
+
+# Create a clickable reg number and replace it into the summary data
+my $display_reg_number = '<a href="https://collections.tepapa.govt.nz/object/' . $cat_irn . '" target="_blank" title="Collections Online">' . $encoded_reg_number . '</a>'; 
+$display_summary_data =~ s/$reg_number/$display_reg_number/ig;
+
+$html=<<_DIV2_;
+<div class="w3-quarter"><div class="w3-card">
+<a href="https://collections.tepapa.govt.nz/object/$cat_irn" title="$reg_number" target="_blank"><img src="https://media.tepapa.govt.nz/collection/$mm_irn/thumb" alt="" style="width:100%"/></a>
+<div class="w3-container"><p style="font-size:smaller">$display_summary_data</p></div>
+</div></div>
+
+_DIV2_
+} 
+else {
+# Unformatted output
+$html=<<_DIV3_;
+<div id="$count" class="thumb_container $sections{$section}">
+<a href="https://collections.tepapa.govt.nz/object/$cat_irn" title="$encoded_reg_number" target="_blank"><img src="https://media.tepapa.govt.nz/collection/$mm_irn/thumb" class="thumb $longest_edge" alt="" /></a>
+</div>
+_DIV3_
+}
+		$media{$discipline}{$section}{$reg_number}{$mm_irn}=$html;
+
+		} # end if $cat_type = collection
+	
+	} # end foreach $cat
+
+$count++;
+
+$section_count{$section}++;
+
+} # end foreach $arg
+
+
+# Calculate section stats
+my @stats;
+foreach my $this_section (sort keys(%section_count)) {
+	my $percentage = sprintf("%.1f", ($section_count{$this_section} / ($count-1)) * 100);
+	my $stats_link = '<a href="#' . $sections{$this_section} . '">' . $this_section;
+	$stats_link.="</a> ($section_count{$this_section}, $percentage%)";
+	push (@stats, $stats_link);
+	}
+my $number_of_sections=scalar(@stats);
+
+
+# Finally output the html page
+$out.=<<_HTML1_;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Report generated from EMu multimedia module, see Pou Mataaho #10786246" />
+<title>Thumbnails</title>
+_HTML1_
+
+# For the contact sheet output we add some styling
+if ($output_type eq 'contact') {
+$out.=<<_HTML2_;
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<style>
+\@media screen {
+	body { background: #F5F5F5; }
+	}
+\@media print {
+	.w3-quarter { width:25%; height:auto; font-size:smaller; }
+	.pagebreak { page-break-before: always; }
+	}
+</style>
+_HTML2_
+}
+
+# If output is unformatted we add some basic CSS styling code so that the user can populate
+if ($output_type eq 'unformatted') {
+	$out.='<style>' . $cr;
+	$out.='.thumb_container {}' . $cr;
+	$out.='.thumb {}' . $cr;
+	$out.='.landscape {}' . $cr;
+	$out.='.portrait {}' . $cr;
+	foreach my $this_section (sort keys(%section_count)) {
+		$out.='.' . $sections{$this_section} . ' {}' . $cr;
+		}
+	$out.='</style>' . $cr;
+	}
+
+$out.='</head>' . $cr;
+$out.='<body>' . $cr;
+
+# Only output the top navigation if there are multiple sections and the output is fully formatted option
+if ($output_type eq 'full' && $number_of_sections > 1) {
+	$out.='<div id="top" style="display:block; clear:both;">' . $cr;
+	$out.='<p>Click on a collection name to jump to that section.  The numbers represent the number of images and percentage of total images:</p><p>';
+	$out.= join ", ", @stats;
+	$out.='</p></div>' . $cr;
+	}
+
+# Main loop to output image code.  Images are sorted by Discipline - Humanities/Nautral History, then Section, then Registration Number
+# Images with the same reg number are grouped together (e.g. front/reverse of a postcard)
+
+if ($output_type eq 'contact') { $out.='<div class="w3-container">' . $cr; }
+
+my $qtr_count=1;
+
+foreach my $this_discipline (sort keys(%media)) {
+
+	my $this_discipline_array= $media{$this_discipline};
+
+	$out.='<!--discipline starts-->' . $cr;
+
+	foreach my $this_section (sort keys(%$this_discipline_array)) {
+	
+		my $this_section_array = $media{$this_discipline}{$this_section};
+
+		if ($output_type eq 'full' && $number_of_sections > 1) {		
+			$out.='<div style="clear:both; display:block;"><h2 style="margin:0; padding:0; padding:10px 0 5px 0;" id="' . $sections{$this_section} .'">' . $this_section . ' <a href="#top">^</a></h2></div>' . $cr;
+			}
+		
+		foreach my $this_reg_number (sort keys(%$this_section_array)) {
+
+		my $this_reg_number_array = $media{$this_discipline}{$this_section}{$this_reg_number};
+	
+		foreach my $this_irn (reverse sort keys(%$this_reg_number_array)) {
+
+			if ($output_type eq 'contact' && $qtr_count >4) { $out.='</div>'; $qtr_count=1;  } 
+
+			if ($output_type eq 'contact' && $qtr_count==1) { $out.='<div class="w3-row-padding w3-margin-top">' . $cr; }
+
+			$out.=$media{$this_discipline}{$this_section}{$this_reg_number}{$this_irn};
+
+			$qtr_count++;
+			
+			} # end foreach this_irn
+
+		} # end foreach this_reg_number
+
+	} # end foreach this_section
+
+} # end foreach this_discipline
+
+if ($output_type eq 'contact' && $qtr_count < 5 ) { $out.="</div>" . $cr; }	
+
+if ($output_type eq 'contact') { $out.='</div>' . $cr; }
+
+$out.=<<_HTML2_;
+<div style="clear:both; display:block"><p> &nbsp; </p></div>
+</body>
+</html>
+_HTML2_
+
+print $OutFile $out;
+
+print("$outFilename\n");
+
+$OutFile->close();
+
+exit(0);
