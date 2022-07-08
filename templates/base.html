@@ -21,6 +21,11 @@
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <link rel="stylesheet" href="/static/css/normalize.css">
   <link rel="stylesheet" href="/static/css/skeleton.css">
+  <link rel="stylesheet" href="/static/css/slider.css">
+
+  <!-- JavaScript
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <script src="/static/js/slider.js"></script>
 
   <!-- Favicon
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -41,7 +46,7 @@
           </form>
         </div>
         {% if source_id %}
-          <p>Data saved as <a href="/{{source_id}}">{{source_id}}_saved_dataset.json!</a></p>
+          <p>Data saved with ID <a href="/{{source_id}}">{{source_id}}!</a></p>
         {% endif %}
       </div>
       <div class="one-half column">
@@ -54,10 +59,30 @@
       <div class="row">
         {% for record in records %}
         <div class="one-third column" id="{{record.IRN}}">
-          <div class="slider">
-            {% for i in record.number_of_images %}
-              <img src="/static/thumbs/{{record.IRN}}_{{record.image_0.image_0_irn}}.jpg" style="width:100%" />
-            {% endfor %}
+          <div class="container">
+            <div class="slider">
+              {% for image in record.images %}
+                <img {% if loop.first %} class="active"{% endif %} src="/static/thumbs/{{record.IRN}}_{{image.image_irn}}.jpg" style="width:100%" />
+              {% endfor %}
+            </div>
+            <nav class="slider-nav">
+              <ul>
+                <li class="arrow">
+                  <button class="previous">
+                    <span>
+                      <i class="ion-arrow-left-c"></i>
+                    </span>
+                  </button>
+                </li>
+                <li class="arrow">
+                  <button class="next">
+                    <span>
+                      <i class="ion-arrow-left-c"></i>
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </nav>
           </div>
           <h2>{{record.title|e}}</h2>
           <p class="caption">{{record.creator|e}}, {{record.date|e}}</p>
@@ -69,6 +94,8 @@
         </div>
         {% endfor %}
       </div>
+    {% if errors %}
+    <p>{{errors|e}}</p>
     {% endif %}
   </div>
 </body>

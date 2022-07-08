@@ -13,6 +13,12 @@ sys.path.append("C:/Users/lucy.schrader/Documents/Scripts/coApiHarvest")
 
 import TePapaHarvester
 
+#TODO figure out what's wrong with pip so I can actually
+#install tinydb
+
+from tinydb import TinyDB, Query
+db = TinyDB('harvestDB.json')
+
 app = Flask(__name__)
 
 working_folder = os.getcwd()
@@ -42,11 +48,15 @@ def save():
 		hashing_string = "".join(irns)
 		source_id = str(hash(hashing_string))
 
+'''
 		data_filename = "saved_data_{}.json".format(source_id)
 
 		with open(data_filename, "w+", encoding="utf-8") as f:
 			json.dump(saved_dataset, f)
 		f.close()
+'''
+
+		db.insert({source_id:saved_dataset})
 
 		return render_template("base.html", source_id=source_id)
 	else:
@@ -54,7 +64,13 @@ def save():
 
 @app.route("/<source_id>", methods=["GET","POST"])
 def load(source_id):
-	source_file = "saved_data_{}.json".format(source_id)
-	with open(source_file, 'r', encoding="utf-8") as f:
-		records = json.load(f)
-		return render_template("base.html", records=records)
+	db_query = Query()
+	errors = None
+	try:
+		records = db.search(db_query.source_id == source_id)
+	except:
+		errors = "Set with that ID not found"
+#	source_file = "saved_data_{}.json".format(source_id)
+#	with open(source_file, 'r', encoding="utf-8") as f:
+#		records = json.load(f)
+	return render_template("base.html", records=records, errors=errors)
