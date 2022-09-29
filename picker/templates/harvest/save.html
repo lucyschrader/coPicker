@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Records{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<h2>Choose a collection to harvest</h2>
+<div class="row">
+	<form method="post">
+		<div class="input-group">
+			<select class="form-select" id="collection-harvest" name="collection-harvest" aria-label="Choose a collection to harvest.">
+				<option selected>Choose a collection...</option>
+				{% for collection in collections %}
+				<option value="{{collection.facetedTitle}}">{{collection.facetedTitle}}</option>
+		  	{% endfor %}
+			</select>
+			<button class="btn btn-outline-secondary" type="submit">Harvest</button>
+		</div>
+	</form>
+</div>
+{% endblock %}

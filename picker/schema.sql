@@ -1,0 +1,43 @@
+DROP TABLE IF EXISTS collections;
+DROP TABLE IF EXISTS records;
+DROP TABLE IF EXISTS media;
+DROP TABLE IF EXISTS people;
+
+CREATE TABLE collections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    title TEXT NOT NULL,
+    facetedTitle TEXT NOT NULL
+);
+
+CREATE TABLE records (
+    irn INTEGER PRIMARY KEY NOT NULL,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL,
+    collectionId INTEGER NOT NULL,
+    identifier TEXT NOT NULL,
+    dateLabel TEXT NOT NULL,
+    dateValue TEXT NOT NULL,
+    personLabel TEXT NOT NULL,
+    qualityScore REAL NOT NULL,
+    include TEXT NOT NULL
+);
+
+CREATE TABLE media (
+    irn INTEGER PRIMARY KEY NOT NULL,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    recordId INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    width INTEGER NOT NULL,
+    height INTEGER NOT NULL,
+    license TEXT NOT NULL,
+    include TEXT NOT NULL
+);
+
+CREATE TABLE people (
+    irn INTEGER PRIMARY KEY NOT NULL,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    title TEXT NOT NULL,
+    recordId INTEGER NOT NULL
+);
