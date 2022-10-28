@@ -5,18 +5,54 @@
 {% endblock %}
 
 {% block content %}
-<h2>Choose a collection to harvest</h2>
 <div class="row">
-	<form method="post">
-		<div class="input-group">
-			<select class="form-select" id="collection-harvest" name="collection-harvest" aria-label="Choose a collection to harvest.">
-				<option selected>Choose a collection...</option>
-				{% for collection in collections %}
-				<option value="{{collection.facetedTitle}}">{{collection.facetedTitle}}</option>
-		  	{% endfor %}
-			</select>
-			<button class="btn btn-outline-secondary" type="submit">Harvest</button>
+	{% for coll in all_colls %}
+		{% for collection in collections if collection.facetedTitle == coll %}
+		<div class="col-3">
+			<div class="card {% if collection.objectType == 'object' %}text-bg-primary{% elif collection.objectType == 'specimen' %}text-bg-success{% endif %}">
+				<img src="{{ url_for('static', filename='images/cards/')}}{{collection.facetedTitle}}.jpg" class="card-img-top" alt="" />
+				<div class="card-body">
+					<h5 class="card-title">{{collection.title}}</h5>
+					<h6 class="card-subtitle mb-2 text-muted">Last harvested {{collection.lastHarvested|e}}</h6>
+					<ul class="list-group list-group-flush">
+						<li class="list-group-item"><strong>{{collection.totalImages}}</strong> total images</li>
+						<li class="list-group-item"><strong>{{collection.loadedImages}}</strong> images loaded</li>
+						<li class="list-group-item"><strong>{{collection.includedImages}}</strong> images included</li>
+						<li class="list-group-item"><strong>{{collection.excludedImages}}</strong> images excluded</li>
+					</ul>
+					<form method="post">
+						<div class="form-check">
+							<input class="form-check-input" type="radio" value="additive" id="{{collection.facetedTitle}}-addtoharvest" checked>
+							<label class="form-check-label" for="{{collection.facetedTitle}}-addtoharvest">Add new items</label>
+						</div>
+						<div class="form-check">
+							<input class="form-check-input" type="radio" value="destructive" id="{{collection.facetedTitle}}-redoharvest">
+							<label class="form-check-label" for="{{collection.facetedTitle}}-redoharvest">Re-run from scratch</label>
+						</div>
+						<button class="btn btn-primary" type="submit">Harvest</button>
+					</form>
+				</div>
+				<div class="card-footer"><a href="/view/{{collection.facetedTitle}}">View {{collection.title}} records</a></div>
+			</div>
 		</div>
-	</form>
+		{% else %}
+		<div class="col-3">
+			<div class="card border-light opacity-75">
+				<img src="{{ url_for('static', filename='images/cards/')}}{{coll}}.jpg" class="card-img-top" alt="" />
+				<div class="card-body">
+					<h5 class="card-title">{{coll}}</h5>
+					<h6 class="card-subtitle mb-2 text-muted">Not harvested</h6>
+					<ul class="list-group list-group-flush">
+						<li class="list-group-item"><strong>0</strong> total images</li>
+						<li class="list-group-item"><strong>0</strong> images loaded</li>
+						<li class="list-group-item"><strong>0</strong> images included</li>
+						<li class="list-group-item"><strong>0</strong> images excluded</li>
+					</ul>
+				</div>
+				<div class="card-footer"><a href="/harvest/{{coll}}">Harvest this collection</a></div>
+			</div>
+		</div>
+		{% endfor %}
+	{% endfor %}
 </div>
 {% endblock %}

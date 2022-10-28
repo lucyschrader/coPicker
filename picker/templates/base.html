@@ -37,20 +37,16 @@
 
 </head>
 <body>
-  <div class="container px-4">
-    <h1>Picker</h1>
-    <div class="row gx-5">
-      <h2>Select a collection to view</h2>
-      <div class="col">
-        <a href="/view/Photography">Photography</a>
-        <a href="/view/RareBooks">Rare Books</a>
-        <a href="/view/Philatelic">Philatelic</a>
-        <a href="/view/Birds">Birds</a>
-      </div>
+  <nav class="navbar bg-light">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <img src="{{ url_for('static', filename='images/squirrel.svg') }}" alt="Picker home" width="24" height="24" class="d-inline-block align-text-top" /> Picker
+      </a>
     </div>
-
-    {% block content %}{% endblock %}
-    
+  </nav>
+  <div class="container">
+    {% block content %}
+    {% endblock %}
   </div>
 </body>
 </html>

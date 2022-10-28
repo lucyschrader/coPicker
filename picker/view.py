@@ -10,60 +10,116 @@ import os
 from datetime import datetime
 import time
 import sqlite3
-from picker.db import get_db, CollHandler, RecordHandler, MediaHandler, PeopleHandler
+from picker.db import get_db, write_new, query_db, update_item, delete_item
 
 bp = Blueprint('view', __name__, url_prefix='/view')
 
 @bp.route("/<collection>", methods=("GET", "POST"))
 def view_collection(collection):
-	collection_handler = CollHandler()
-	record_handler = RecordHandler()
-	media_handler = MediaHandler()
-	people_handler = PeopleHandler()
-	db = get_db()
-	coll_data = collection_handler.get_coll(collection)
+	cards = None
+
+	coll_data = query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[collection], one=True)
 	coll_id = int(coll_data["id"])
+	coll_title = coll_data["title"]
+
+	coll_size = len(query_db(statement="SELECT * FROM records WHERE collectionId = ?", args=[coll_id], one=False))
 	
-	records = record_handler.query_recs("SELECT * FROM records WHERE collectionId = ?", coll_id)
-
-	irns = []
-
-	for record in records:
-		irns.append(record["irn"])
-
-	media = media_handler.get_med(statement="SELECT * from media WHERE recordId IN ({0})".format(", ".join("?" for _ in irns)), value=irns)
-
 	if request.method == "POST":
-		error = None
-		db_id = request.form["db_id"]
-		irn = request.form["irn"]
-		include = request.form["include"]
+		response = query_db(statement="SELECT * FROM records WHERE collectionId = ?", args=[coll_id], one=False)
+		if response is not None:
+			records = [{k: record[k] for k in record.keys()} for record in response]
 
-		rec_data = {"db_id": db_id, "irn": irn, "include": include}
+			for record in records:
+				record.update({"media": None, "people": None})
+				m_response = query_db(statement="SELECT m.irn, m.width, m.height, m.license, m.include from media m \
+						JOIN recordmedia rm \
+						ON m.irn = rm.mediaId \
+						WHERE rm.recordId = ?", args=[record["irn"]], one=False)
 
-		update_rec = record_handler.update_rec(rec_data)
+				if m_response is not None:
+					meds = [{k: med[k] for k in med.keys()} for med in m_response]
+					record.update({"media": meds})
 
-		if update_rec is None:
-			error = "Update failed"
+				p_response = query_db(statement="SELECT p.irn, p.title from people p \
+						JOIN recordpeople rp \
+						ON p.irn = rp.personId \
+						WHERE rp.recordId = ?", args=[record["irn"]], one=False)
 
-		if error is None:
-			return render_template("view/records.html", records=records, media=media)
+				if p_response is not None:
+					peeps = [{k: peep[k] for k in peep.keys()} for peep in p_response]
+					record.update({"people": meds})
 
-		flash(error)
+#		for record in records:
+#			irns.append(record["irn"])
+#
+#		if len(irns) > 0:
+#			media = query_db(statement="SELECT * from media WHERE recordId IN ({0})".format(", ".join("?" for _ in irns)), args=irns, one=False)
+#
+			return render_cards(records=records, request=request)
 
-	return render_template("view/records.html", records=records, media=media)
+		else:
+			return render_template("view/records.html", coll_title=coll_title, coll_size="No matching images.", collection=collection)
+
+	else:
+		return render_template("view/records.html", coll_title=coll_title, coll_size=coll_size, collection=collection)
+
+def render_cards(records, request):
+	print(request.form)
+	start = int(request.form["start"])
+	size = int(request.form["size"])
+
+	f_todo = None
+	if request.form["todo"] == 'true':
+		f_todo = True
+	elif request.form["todo"] == 'false':
+		f_todo = False
+
+	cards = []
+	record_set = []
+	for i in range(start, len(records)):
+		if len(record_set) < size:
+			try:
+				this_record = records[i]
+
+				if f_todo == False:
+					record_set.append(this_record)
+				else:
+					this_record_todo = False
+
+					for image in this_record["media"]:
+						if image["include"] == None:
+							this_record_todo = True
+
+					if this_record_todo == True:
+						record_set.append(records[i])
+
+			except IndexError:
+				break
+		elif records[i] == records[-1]:
+			break
+		else:
+			break
+
+	if len(record_set) == 0:
+		print("Oh no")
+		return "none"
+
+	for record in record_set:
+		record_id = record["irn"]
+		card = render_template("view/recordcard.html", record=record)
+		cards.append(card)
+	return cards
 
 @bp.route("/select", methods=("GET", "POST"))
 def saveSelection():
-	media_handler = MediaHandler()
-
 	if request.method == "POST":
 		media_irn = request.form["irn"]
 		selection = request.form["selection"]
 		
-		update = media_handler.update_med(media_irn, selection)
-		print(update)
+		update = update_item(statement="UPDATE media SET include = ? WHERE irn = ?", args=(selection, media_irn), message="Updated image {}".format(media_irn))
 		
-		read_media = media_handler.get_med(statement="SELECT * from media WHERE irn = ?", value=media_irn, one=True)
+		read_media = query_db(statement="SELECT * from media WHERE irn = ?", args=(media_irn,), one=True)
+
 		resp = {"irn": read_media["irn"], "include": read_media["include"]}
+
 		return resp

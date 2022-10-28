@@ -5,55 +5,30 @@
 {% endblock %}
 
 {% block content %}
-{% if records %}
-<div class="row gx-5">
-  {% for record in records %}
-  <div class="col-4" id="{{record.irn}}">
-    <h2>{{record.title|e|truncate(50, True, "...", 0)}}</h2>
-    <ul class="caption">
-      <li><strong>{{record.dateLabel|e}}: </strong>{{record.dateValue|e}}</li>
-      <li><strong>{{record.personLabel|e}}: </strong><a href="/{{record.personId}}">{{record.person|e}}</a></li>
-    </ul>
-    <div class="image-block">
-      {% for image in media if image.recordId == record.irn %}
-      {% if loop.first %}
-      <img style="max-height: 300px; max-width: 90%;" src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" alt="{{record.title|e}}" />
-      {% endif %}
-      {% endfor %}
-      <button type="button" class="btn btn-primary position-relative" data-bs-toggle="modal" data-bs-target="#select-modal-{{record.irn}}">Pick images
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{% for image in media if image.recordId == record.irn %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}}{% endif %}{% endfor %}
-          <span class="visually-hidden">number of images</span>
-        </span>
-      </button>
-      
-      <div class="modal fade" id="select-modal-{{record.irn}}" tabindex="-1" aria-labelledby="modal for {{record.irn}}" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modal-label-{{record.irn}}">{{record.irn}}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <div class="container-fluid">
-                <div class="row">
-                {% for image in media if image.recordId == record.irn %}
-                  <div class="col-md-4" id="block-{{image.irn}}">
-                    <img class="modal-thumb" style="border:1px solid #ddd; border-radius:4px; padding:5px; width:150px" src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" />
-                    <div class="list-group" id="buttons-{{image.irn}}">
-                      <button type="button" class="list-group-item list-group-item-action{% if image.include == 'y' %} active{% endif %}" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{image.irn}}, 'y')">Include</button>
-                      <button type="button" class="list-group-item list-group-item-action{% if image.include == 'n' %} active{% endif %}" id="select-{{image.irn}}-n" onclick="saveSelection('/view/select', {{image.irn}}, 'n')">Leave out</button>
-                    </div>
-                  </div>
-                {% endfor %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
+<div class="row">
+  <h1 class="display-1">{{coll_title}}</h1>
+  <h2 id="coll-size">{{coll_size}}</h2>
+  <a href="/export/{{collection}}" role="button" class="btn btn-warning">Export this collection</a>
+</div>
+
+{% if message %}
+<div class="row" id="message">
+  <p>{{message}}</p>  
 </div>
 {% endif %}
+
+<div class="row">
+  <h2>Filters</h2>
+  <div class="btn-group" role="group" aria-label="Buttons for filtering">
+    <button type="button" class="btn btn-secondary" id="filter-todo">Click to see items needing checking</button>
+  </div>
+</div>
+
+<div class="row gx-5" id="record-cards">
+</div>
+
+<nav aria-label="pagination">
+  <ul class="pagination justify-content-center" id="pagepick" aria-live="polite">
+  </ul>
+</nav>
 {% endblock %}
