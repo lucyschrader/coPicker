@@ -1,0 +1,72 @@
+.card-img-top {
+	display: block;
+	backface-visibility: hidden;
+}
+
+.overlay-container {
+	position: relative;
+}
+
+.overlay-container .img-overlay {
+	width: 100%;
+	position: absolute;
+	text-align: center;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	opacity: 0;
+	transition: opacity .2s;
+	display: flex;
+	flex-direction: row;
+	justify-content: stretch;
+}
+
+.img-overlay:hover {
+	opacity: 1;
+}
+
+.img-overlay-choice {
+	color: black;
+	flex: 1 0 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.6;
+	appearance: none;
+	border-width: 0;
+}
+
+.img-overlay-choice:hover {
+	opacity: 0.8;
+	cursor: pointer;
+}
+
+.overlay-modal-trigger {
+	background-color: #817E9F;
+}
+
+.deselect-record {
+	background-color: #DE6B48;
+}
+
+.select-record {
+	background-color: #B5EF8A;
+}
+
+.select-indicator {
+	height: 5px;
+	width: 100%;
+}
+
+.indicate-include {
+	background-color: #B5EF8A;
+}
+
+.indicate-exclude {
+	background-color: #DE6B48;
+}
+
+.indicate-none {
+	background-color: #817E9F;
+}

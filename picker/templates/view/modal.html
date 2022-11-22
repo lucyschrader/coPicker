@@ -1,0 +1,32 @@
+<div class="modal fade" id="select-modal-{{record.irn}}" tabindex="-1" aria-labelledby="modal for {{record.irn}}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-label-{{record.irn}}">{{record.irn}}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row">
+            <p><a href="https://collections.tepapa.govt.nz/object/{{record.irn}}" target="_blank">See on Collections Online</a></p>
+          </div>
+          <div class="row">
+            {% for image in record.media %}
+              <div class="col-md-3" id="block-{{image.irn}}">
+                <p>{{image.irn}}</p>
+                <div class="overlay-container">
+                  <img class="modal-thumb" style="border:1px solid #ddd; border-radius:4px; padding:5px; max-width:150px" src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" />
+                  <div class="img-overlay">
+                    <button type="button" class="img-overlay-choice deselect-record" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{record.irn}}, {{image.irn}}, 'n', 'modal')">Exclude</button>
+                      <button type="button" class="img-overlay-choice select-record" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{record.irn}}, {{image.irn}}, 'y', 'modal')">Include</button>
+                  </div>
+                </div>
+                <div class="select-indicator {% if image.include == 'y' %}indicate-include{% elif image.include == 'n' %}indicate-exclude{% else %}indicate-none{% endif %}"></div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
