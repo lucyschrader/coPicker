@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Get started{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="cover-image" style="background-image: url({{url_for('static', filename=cover)}})">
+	<div class="container text-center">
+		<div class="inner-cover">
+			<h1 class="display-1">Pick some images</h1>
+			<p class="lead">Log in, select your project, and start choosin' stuff.</p>
+			<p class="lead"><a href="{{url_for('auth.login')}}" class="btn btn-lg btn-default btn-homepage-login">Log in</a></p>
+			<p>(email lucy to register)</p>
+		</div>
+	</div>
+</div>
+{% endblock %}
