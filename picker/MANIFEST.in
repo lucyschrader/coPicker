@@ -1,0 +1,4 @@
+include picker/schema.sql
+graft picker/static
+graft picker/templates
+global-exclude *.pyc
