@@ -1,56 +1,37 @@
-<div class="col-4">
-  <div class="card mb-3" style="max-width: 540px;" id="{{record.irn}}">
-    <div class="row g-0">
-      <div class="col-md-6">
+<div class="col-3">
+  <div class="card" style="max-width: 540px;" id="card-{{record.irn}}">
+    <div class="overlay-container">
       {% for image in record.media %}
         {% if loop.first %}
-        <img class="img-fluid rounded-start" src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" alt="{{record.title|e}}" />
+          <img class="card-img-top" src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" alt="{{record.title|e}}" />
         {% endif %}
       {% endfor %}
-      </div>
-      <div class="col-md-6">
-        <div class="card-body">
-          <h5 class="card-title">{{record.title|e|truncate(50, True, "...", 0)}}</h5>
-          <h6 class="card-subtitle mb-2 text-muted">{{record.irn}}</h6>
-          <p class="card-text">
-            <strong>{{record.dateLabel|e}}:</strong> {{record.dateValue|e}}
-          </p>
-          <p class="card-text">
-            <strong>{{record.personLabel|e}}: </strong>{% if record.people %}{% for person in record.people %}<a href="/{{person.irn}}">{{person.title|e}}</a> {% endfor %}{% else %}Unknown{% endif %}
-          </p>
-          <button type="button" class="btn btn-primary position-relative" data-bs-toggle="modal" data-bs-target="#select-modal-{{record.irn}}">Pick images
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{% for image in record.media %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}}{% endif %}{% endfor %}
-              <span class="visually-hidden">number of images</span>
-            </span>
-          </button>
-        </div>
+      <div class="img-overlay">
+        {% if record.media|length == 1 %}
+        {% for image in record.media %}
+          <button type="button" class="img-overlay-choice deselect-record" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{record.irn}}, {{image.irn}}, 'n', 'card')">Exclude</button>
+          <button type="button" class="img-overlay-choice select-record" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{record.irn}}, {{image.irn}}, 'y', 'card')">Include</button>
+        {% endfor %}
+        {% else %}
+          <button type="button" class="img-overlay-choice overlay-modal-trigger" data-bs-toggle="modal" data-bs-target="#select-modal-{{record.irn}}">Check {{record.media|length}} images</button>
+        {% endif %}
       </div>
     </div>
-  </div>
-</div>
-      
-<div class="modal fade" id="select-modal-{{record.irn}}" tabindex="-1" aria-labelledby="modal for {{record.irn}}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modal-label-{{record.irn}}">{{record.irn}}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="select-indicator {% if record.include == 'y' %}indicate-include{% elif record.include == 'n' %}indicate-exclude{% else %}indicate-none{% endif %}"></div>
+    <div class="card-body">
+      <h5 class="card-title">{{record.title|e|truncate(40, True, "...", 0)}}</h5>
+      <h6 class="card-subtitle mb-2 text-muted">{{record.irn}}</h6>
+      <div id="badgecount-{{record.irn}}">
+         <span class="badge rounded-pill text-bg-dark">{% for image in record.media %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} total{% endif %}{% endfor %}</span>
+        <span class="badge rounded-pill text-bg-primary">{% for image in record.media if image.include == 'y' %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} included{% endif %}{% endfor %}</span>
+        <span class="badge rounded-pill text-bg-warning">{% for image in record.media if image.include == 'n' %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} excluded{% endif %}{% endfor %}</span>
       </div>
-      <div class="modal-body">
-        <div class="container-fluid">
-          <div class="row">
-          {% for image in record.media %}
-            <div class="col-md-4" id="block-{{image.irn}}">
-              <img class="modal-thumb" style="border:1px solid #ddd; border-radius:4px; padding:5px; width:150px" src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" />
-              <div class="list-group" id="buttons-{{image.irn}}">
-                <button type="button" class="list-group-item list-group-item-action{% if image.include == 'y' %} active{% endif %}" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{image.irn}}, 'y')">Include</button>
-                <button type="button" class="list-group-item list-group-item-action{% if image.include == 'n' %} active{% endif %}" id="select-{{image.irn}}-n" onclick="saveSelection('/view/select', {{image.irn}}, 'n')">Leave out</button>
-              </div>
-            </div>
-          {% endfor %}
-          </div>
-        </div>
-      </div>
+      <p class="card-text">
+        <strong>{{record.dateLabel|e}}:</strong> {{record.dateValue|e}}
+      </p>
+      <p class="card-text">
+        <strong>{{record.personLabel|e}}: </strong>{% if record.people %}{% for person in record.people %}{{person.title|e}} {% endfor %}{% else %}Unknown{% endif %}
+      </p>
     </div>
   </div>
 </div>

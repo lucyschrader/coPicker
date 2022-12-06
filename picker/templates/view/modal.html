@@ -11,6 +11,14 @@
             <p><a href="https://collections.tepapa.govt.nz/object/{{record.irn}}" target="_blank">See on Collections Online</a></p>
           </div>
           <div class="row">
+            <div class="col">
+              <button id="select-all-{{record.irn}}-y" type="button" class="btn btn-primary" onclick="selectAllModal({{record.irn}}, {{record.media|map(attribute='irn')|list}}, 'y')">Include all</button>
+            </div>
+            <div class="col">
+              <button id="select-all-{{record.irn}}-n" type="button" class="btn btn-primary" onclick="selectAllModal({{record.irn}}, {{record.media|map(attribute='irn')|list}}, 'n')">Exclude all</button>
+            </div>
+          </div>
+          <div class="row">
             {% for image in record.media %}
               <div class="col-md-3" id="block-{{image.irn}}">
                 <p>{{image.irn}}</p>

@@ -5,26 +5,23 @@ sys.path.append("C:/Users/lucy.schrader/Documents/Scripts/coApiHarvest")
 import TePapaHarvester
 
 import functools
-from flask import (Blueprint, g, redirect, render_template, request, url_for)
+from flask import (Blueprint, g, redirect, render_template, request, url_for, flash, session)
 import os
 import datetime
 import time
-import sqlite3
 from picker.db import get_db, write_new, query_db, update_item, delete_item
+from picker.auth import login_required, admin_required
 
 bp = Blueprint('harvest', __name__, url_prefix='/harvest')
 
 class DatabaseWriter():
 	# Outputs query data to sqlite3 db
 	# Creates a new object for each collection, irn, media irn and person
-	def __init__(self):
+	def __init__(self, collection, harvest_mode):
+		self.collection = collection
+		self.harvest_mode = harvest_mode
+		self.collection_databased = False
 		self.errors = None
-		self.search_rec_statement = "SELECT * FROM records WHERE irn = ?"
-		self.write_rec_statement = "INSERT INTO records (irn, title, type, collectionId, identifier, dateLabel, dateValue, personLabel, qualityScore, include) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-		self.search_coll_statement = "SELECT * FROM collections WHERE facetedTitle = ?"
-		self.write_coll_statement = "INSERT INTO collections (title, facetedTitle, lastHarvested, objectType) VALUES (?, ?, ?, ?)"
-		self.write_media_statement = "INSERT INTO media (irn, type, width, height, license) VALUES (?, ? , ?, ?, ?)"
-		self.write_person_statement = "INSERT INTO people (title, irn) VALUES (?, ?)"
 
 	def process_irns(self, record_data):
 		all_irns = record_data.keys()
@@ -32,60 +29,77 @@ class DatabaseWriter():
 
 		for irn in all_irns:
 			this_record = record_data[irn]
+
+			if self.collection_databased == False:
+				self.insert_collection(this_record)
+
 			irn = int(irn)
-			if query_db(self.search_rec_statement, [irn], one=True):
-				print("{} already in DB".format(irn))
-			else:
-				facetedTitle = this_record["collection"]
-				
-				if query_db(self.search_coll_statement, [facetedTitle], one=True) == None:
-					coll_data = self.proc_coll(this_record)
-					
-					write_new(self.write_coll_statement, [coll_data["title"], coll_data["facetedTitle"], coll_data["lastHarvested"], coll_data["objectType"]], "{} successfully saved".format(coll_data["title"]))
+			action = None
+			existing_rec = query_db(statement="SELECT * FROM records WHERE irn = ?", args=[irn], one=True)
 
-				media_data = self.proc_med(this_record, irn)
-				people_data = self.proc_per(this_record, irn)
+			if self.harvest_mode == "additive":
+				if existing_rec == True:
+					continue
+				else:
+					action = "write"
+			elif self.harvest_mode == "reharvest":
+				if existing_rec == True:
+					action = "update"
+				else:
+					action = "write"
+			elif self.harvest_mode == "new-harvest":
+				action = "write"
 
-				if len(media_data) > 0:
-					rec = self.proc_rec(this_record)
+			self.harvest_record(this_record=this_record, irn=irn, action=action)
 
-					coll_id = query_db(self.search_coll_statement, [facetedTitle], one=True)["id"]
-					
-					rec.update({"collectionId": coll_id})
+	def insert_collection(self, this_record):
+		if query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[self.collection], one=True) == None:
+			coll_data = self.proc_coll(this_record)
+			write_new(statement="INSERT INTO collections (title, facetedTitle, lastHarvested, objectType) VALUES (?, ?, ?, ?)", args=[coll_data["title"], coll_data["facetedTitle"], coll_data["lastHarvested"], coll_data["objectType"]])
+			self.collection_databased == True
+		else:
+			self.collection_databased == True
 
-					write_new(self.write_rec_statement, (rec["irn"], rec["title"], rec["type"], rec["collectionId"], rec["identifier"], rec["dateLabel"], rec["dateValue"], rec["personLabel"], rec["qualityScore"], rec["include"]), "Record {} successfully updated".format(rec["irn"]))
+	def harvest_record(self, this_record, irn, action):
+		media_data = self.proc_med(this_record, irn)
+		people_data = self.proc_per(this_record, irn)
 
-					for media in media_data:
-						if query_db("SELECT * FROM media WHERE irn = ?", [media["irn"]], one=True) == None:
-							write_new(self.write_media_statement, (media["irn"], media["type"], media["width"], media["height"], media["license"]), "Image {} successfully saved".format(media["irn"]))
-						write_new("INSERT INTO recordmedia (recordId, mediaId) VALUES (?, ?)", (irn, media["irn"]), "{} successfully joined".format(media["irn"]))
+		if len(media_data) > 0:
+			rec = self.proc_rec(this_record)
 
-					if len(people_data) > 0:
-						for person in people_data:
-							if query_db("SELECT * FROM people WHERE irn = ?", [person["irn"]], one=True) == None:
-								write_new(self.write_person_statement, (person["title"], person["irn"]), "{} successfully saved".format(person["title"]))
-							write_new("INSERT INTO recordpeople (recordId, personId) VALUES (?, ?)", (irn, person["irn"]), "{} successfully joined".format(person["title"]))
+			coll_id = query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[self.collection], one=True)["id"]
+			
+			rec.update({"collectionId": coll_id})
 
-#		self.count_total_images(facetedTitle)
+			if action == "write":
+				write_new(statement="INSERT INTO records (irn, recordCreated, recordModified, title, type, collectionId, identifier, dateLabel, dateValue, personLabel, qualityScore) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", args=(rec["irn"], rec["recordCreated"], rec["recordModified"], rec["title"], rec["type"], rec["collectionId"], rec["identifier"], rec["dateLabel"], rec["dateValue"], rec["personLabel"], rec["qualityScore"]))
+			elif action == "update":
+				update_item(statement="UPDATE records SET recordModified = ?, title = ?, identifier = ?, dateLabel = ?, dateValue = ?, personLabel = ?, qualityScore = ? WHERE irn = ?", args=(rec["recordModified"], rec["title"], rec["identifier"], rec["dateLabel"], rec["dateValue"], rec["personLabel"], rec["qualityScore"], irn))
 
-	def count_total_images(self, facetedTitle):
-		coll_data = query_db(statement=self.search_coll_statement, args=[facetedTitle], one=True)
-		coll_id = int(coll_data["id"])
-	
-		records = query_db(statement="SELECT * FROM records WHERE collectionId = ?", args=[coll_id], one=False)
+			for media in media_data:
+				if query_db(statement="SELECT * FROM media WHERE irn = ?", args=[media["irn"]], one=True) == None:
+					write_new(statement="INSERT INTO media (irn, type, width, height, license) VALUES (?, ? , ?, ?, ?)", args=(media["irn"], media["type"], media["width"], media["height"], media["license"]))
+				else:
+					update_item(statement="UPDATE media SET width = ?, height = ?, license = ? WHERE irn = ?", args=(media["width"], media["height"], media["license"], media["irn"]))
+				if query_db(statement="SELECT * FROM recordmedia WHERE recordId = ? AND mediaId = ?", args=(irn, media["irn"]), one=True) == None:
+					write_new(statement="INSERT INTO recordmedia (recordId, mediaId) VALUES (?, ?)", args=(irn, media["irn"]))
 
-		irns = []
+			if len(people_data) > 0:
+				for person in people_data:
+					if person["title"] == None:
+						person.update({"title": "No name"})
+					if query_db(statement="SELECT * FROM people WHERE irn = ?", args=[person["irn"]], one=True) == None:
+						write_new(statement="INSERT INTO people (title, irn) VALUES (?, ?)", args=(person["title"], person["irn"]))
+					else:
+						update_item(statement="UPDATE people SET title = ? WHERE irn = ?", args=[person["title"], person["irn"]])
+					if query_db(statement="SELECT * FROM recordpeople WHERE recordId = ? AND personId = ?", args=(irn, person["irn"]), one=True) == None:
+						write_new(statement="INSERT INTO recordpeople (recordId, personId) VALUES (?, ?)", args=(irn, person["irn"]))
 
-		for record in records:
-			irns.append(record["irn"])
-
-		query_total_images = query_db(statement="SELECT COUNT(*) FROM media WHERE recordId IN ({0})".format(", ".join("?" for _ in irns)), args=irns, one=False)
-		total_images = 0
-		for row in query_total_images:
-			total_images = row[0]
-
-		# Need to add counts and updates for loaded, included, and excluded images
-		update_item(statement="UPDATE collections SET totalImages = ? WHERE id = ?", args=[total_images, coll_id], message="{} successfully updated".format(facetedTitle))
+			if "related" in this_record:
+				for associated_link in this_record["related"]:
+					associated_url = associated_link["associatedUrl"]
+					if query_db(statement="SELECT * FROM recordloaded WHERE (recordId = ?, url = ?)", args=(irn, associated_url)) == None:
+						write_new(statement="INSERT INTO recordloaded (recordId, url) VALUES (?, ?)", args=(irn, associated_url))
 
 	def proc_coll(self, this_record):
 		coll_dict = {
@@ -128,8 +142,7 @@ class DatabaseWriter():
 				"type": None,
 				"width": None,
 				"height": None,
-				"license": None,
-				"include": "None"
+				"license": None
 			}
 
 			if "media_irn" in media:
@@ -191,6 +204,8 @@ class DatabaseWriter():
 	def proc_rec(self, this_record):
 		record_dict = {
 			"irn": None,
+			"recordCreated": None,
+			"recordModified": None,
 			"title": None,
 			"type": None,
 			"collection": None,
@@ -198,12 +213,17 @@ class DatabaseWriter():
 			"dateLabel": None,
 			"dateValue": None,
 			"personLabel": None,
-			"qualityScore": None,
-			"include": "None"
+			"qualityScore": None
 			}
 
 		if "id" in this_record:
 			record_dict.update({"irn": this_record["id"]})
+
+		if "recordCreated" in this_record:
+			record_dict.update({"recordCreated": this_record["recordCreated"]})
+
+		if "recordModified" in this_record:
+			record_dict.update({"recordModified": this_record["recordModified"]})
 
 		if "title" in this_record:
 			record_dict.update({"title": this_record["title"]})
@@ -303,9 +323,8 @@ class RecordData():
 		self.data = self.harvester.harvest_from_list(resource_type=resource_type, irns=irns)
 
 @bp.route("/save", methods=("GET", "POST"))
+@login_required
 def harvest():
-	all_colls = ["Archaeozoology", "Art", "Birds", "CollectedArchives", "Crustacea", "Fish", "FossilVertebrates", "Geology", "History", "Insects", "LandMammals", "MarineInvertebrates", "MarineMammals", "Molluscs", "MuseumArchives", "PacificCultures", "Philatelic", "Photography", "Plants", "RareBooks", "ReptilesAndAmphibians", "TaongaMāori"]
-	collections = query_db(statement="SELECT * FROM collections")
 	if request.method == "POST":
 		collection = request.form.get("collection-harvest")
 		error = None
@@ -324,26 +343,39 @@ def harvest():
 		if error:
 			flash(error)
 
-	return render_template("harvest/save.html", all_colls=all_colls, collections=collections)
+	admin = False
+	user_id = session.get("user_id")
+	db_user = query_db(statement="SELECT * FROM users WHERE id = ?", args=[user_id], one=True)
+	if db_user["role"] == "admin":
+		admin = True
+
+	return render_template("harvest/save.html", admin=admin)
 
 @bp.route("/<collection>", methods=("GET", "POST"))
+@admin_required
 def initial_harvest(collection):
-	humanities = ["Art", "CollectedArchives", "History", "MuseumArchives", "PacificCultures", "Philatelic", "Photography", "RareBooks", "TaongaMāori"]
-	sciences = ["Archaeozoology", "Birds", "Crustacea", "Fish", "FossilVertebrates", "Geology", "Insects", "LandMammals", "MarineInvertebrates", "MarineMammals", "Molluscs", "Plants", "ReptilesAndAmphibians"]
 	if request.method == "POST":
-		if request.form["yesbutton"] == "yes":
-			if collection in humanities:
-				object_type = "Object"
-			elif collection in sciences:
-				object_type = "Specimen"
-			search = RecordData(mode="search", source=None, collection=collection, object_type=object_type)
-			record_data = search.data
+		humanities = ["Art", "CollectedArchives", "History", "MuseumArchives", "PacificCultures", "Philatelic", "Photography", "RareBooks", "TaongaMāori"]
+		sciences = ["Archaeozoology", "Birds", "Crustacea", "Fish", "FossilVertebrates", "Geology", "Insects", "LandMammals", "MarineInvertebrates", "MarineMammals", "Molluscs", "Plants", "ReptilesAndAmphibians"]
+		
+		harvest_mode = request.form["harvest"]
+		
+		if collection in humanities:
+			object_type = "Object"
+		elif collection in sciences:
+			object_type = "Specimen"
+		
+		search = RecordData(mode="search", source=None, collection=collection, object_type=object_type)
+		record_data = search.data
 
-			DBwriter = DatabaseWriter()
-			DBwriter.process_irns(record_data)
+		DBwriter = DatabaseWriter(collection, harvest_mode)
+		DBwriter.process_irns(record_data)
 
-			return redirect(url_for("view.view_collection", collection=collection))
-		else:
-			return redirect("/")
+		return redirect(url_for("view.view_collection", collection=collection))
 
-	return render_template("harvest/initial.html", collection=collection)
+	coll_data = query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[collection], one=True)
+
+	if coll_data == None:
+		return render_template("harvest/initial.html", collection=collection, harvest="new")
+	else:
+		return render_template("harvest/initial.html", collection=collection, harvest="redo")

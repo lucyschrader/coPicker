@@ -5,30 +5,56 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-  <h1 class="display-1">{{coll_title}}</h1>
-  <h2 id="coll-size">{{coll_size}}</h2>
-  <a href="/export/{{collection}}" role="button" class="btn btn-warning">Export this collection</a>
-</div>
-
-{% if message %}
-<div class="row" id="message">
-  <p>{{message}}</p>  
-</div>
-{% endif %}
-
-<div class="row">
-  <h2>Filters</h2>
-  <div class="btn-group" role="group" aria-label="Buttons for filtering">
-    <button type="button" class="btn btn-secondary" id="filter-todo">Click to see items needing checking</button>
+<div class="container">
+  <div class="hstack gap-3">
+    <div>
+      <h1 class="display-1">{{recordData.coll_title}}</h1>
+    </div>
+    <div class="ms-auto">
+       <h2><span id="coll-size" class="csstest">{{recordData.total_records}}</span> records</h2>
+        <p><span id="recs-checked">{{recordData.recs_checked}}</span> checked</p>
+    </div>
+    <div class="ms-auto">
+      <h2><span id="recs-with-inclusions">{{recordData.recs_with_inclusions}}</span> records</h2>
+      <p>included</p>
+    </div>
+    <div class="ms-auto">
+      <h2><span>{{recordData.total_images}}</span> images</h2>
+      <p><span id="img-included">{{recordData.img_included}}</span> included, <span id="img-excluded">{{recordData.img_excluded}}</span> excluded</p>
+    </div>
+    <div class="ms-auto">
+      <a href="/export/{{recordData.collection}}" role="button" class="btn btn-warning">Export this collection</a>
+    </div>
   </div>
-</div>
 
-<div class="row gx-5" id="record-cards">
-</div>
+  {% if view == "cards" %}
+    <div class="row gx-5" id="record-cards">
+    </div>
+  {% else %}
+    <div class="row">
+      <h2>Filters</h2>
+      <div class="col">
+        <div class="btn-group" role="group" aria-label="Buttons for filtering">
+          <button type="button" class="btn btn-primary" id="filter-todo">See items needing checking</button>
+          <button type="button" class="btn btn-primary" id="filter-included">See records with inclusions</button>
+          <button type="button" class="btn btn-primary" id="filter-excluded">See excluded records</button>
+        </div>
+        <button type="button" class="btn btn-outline-secondary" id="sort-new">Sort by last modified</button>
+      </div>
+    </div>
 
-<nav aria-label="pagination">
-  <ul class="pagination justify-content-center" id="pagepick" aria-live="polite">
-  </ul>
-</nav>
+    <div class="row" id="record-list">
+      <ul id="record-ul" class="list-group">
+      </ul>
+    </div>
+
+    <div class="row" id="record-modals">
+    </div>
+
+    <nav aria-label="pagination">
+      <ul class="pagination justify-content-center" id="pagepick" aria-live="polite">
+      </ul>
+    </nav>
+  {% endif %}
+</div>
 {% endblock %}

@@ -5,20 +5,52 @@
 {% endblock %}
 
 {% block content %}
-<h2>Harvest {{collection}}?</h2>
-<div class="row">
-	<div class="alert alert-warning" role="alert">
-		<h4>Hang on!</h4>
-		<p>Do you really want to fully harvest this collection?</p>
-		<p>If you do you'll overwrite any existing data for it in the database.</p>
-<form method="post" class="row">
-	<div class="form-check">
-		<input type="checkbox" class="form-check-input" id="yesbutton" value="yes" name="yesbutton" required />
-		<label class="form-check-label" for="yesbutton">
-			Yes I'm sure :|
-		</label>
+<div class="container">
+	<div class="row">
+		<div class="col">
+			<h2 class="display-2">Harvest {{collection}}?</h2>
+			{% if harvest == "new" %}
+			<p>Hit the button and give it a sec kids.</p>
+			{% else %}
+			<p>Do you want to add new records or update all saved data?</p>
+			<dl class="row">
+				<dt class="col-sm-3">Total records</dt>
+				<dd class="col-sm-9">{{coll_data.totalRecords}}</dd>
+
+				<dt class="col-sm-3">Total images</dt>
+				<dd class="col-sm-9">{{coll_data.totalImages}}</dd>
+
+				<dt class="col-sm-3">Included images</dt>
+				<dd class="col-sm-9">{{coll_data.includedImages}}</dd>
+
+				<dt class="col-sm-3">Excluded images</dt>
+				<dd class="col-sm-9">{{coll_data.excludedImages}}</dd>
+			</dl>
+			{% endif %}
+		</div>
+		<div class="col">
+			{% if harvest == "new" %}
+				<form method="post">
+					<div class="form-check">
+						<input type="checkbox" class="form-check-input" id="harvest-reharvest" value="new-harvest" name="harvest" required />
+						<label class="form-check-label" for="reharvest">Harvest this collection</label>
+					</div>
+					<button type="submit" class="btn btn-danger">Let's go!</button>
+				</form>
+			{% else %}
+				<form method="post">
+					<div class="form-check">
+						<input type="radio" class="form-check-input" id="harvest-additive" value="additive" name="harvest" checked />
+						<label class="form-check-label" for="additive">Just add new stuff</label>
+					</div>
+					<div class="form-check">
+						<input type="radio" class="form-check-input" id="harvest-reharvest" value="reharvest" name="harvest" />
+						<label class="form-check-label" for="reharvest">Reharvest all data</label>
+					</div>
+					<button type="submit" class="btn btn-danger">Let's go!</button>
+				</form>
+			{% endif %}
+		</div>
 	</div>
-	<button type="submit" class="btn btn-danger">Let's go!</button>
-</form>
 </div>
 {% endblock %}

@@ -5,22 +5,24 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-  <h1 class="display-1">Log in</h1>
-</div>
-<div class="row">
-  <div class="col">
-    <form method="POST">
-      <div class="mb-3">
-        <label for="username" class="form-label">Username</label>
-        <input class="form-control" name="username" id="username" required>
-      </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input class="form-control" type="password" name="password" id="password" required>
-      </div>
-      <button type="submit" class="btn btn-primary">Log in!</button>
-    </form>
+<div class="container">
+  <div class="row">
+    <h1 class="display-1">Log in</h1>
+  </div>
+  <div class="row">
+    <div class="col">
+      <form method="POST">
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <input class="form-control" name="username" id="username" required>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input class="form-control" type="password" name="password" id="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Log in!</button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

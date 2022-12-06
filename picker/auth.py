@@ -17,7 +17,20 @@ def login_required(view):
 
 	return wrapped_view
 
+def admin_required(view):
+	@functools.wraps(view)
+	def admin_view(**kwargs):
+		user_id = session.get("user_id")
+		db_user = query_db(statement="SELECT * FROM users WHERE id = ?", args=[user_id], one=True)
+		if db_user["role"] != "admin":
+			return redirect(url_for("start"))
+
+		return view(**kwargs)
+
+	return admin_view
+
 @bp.route("/register", methods=("GET", "POST"))
+@admin_required
 def register():
 	if request.method == "POST":
 		username = request.form["username"]
@@ -60,11 +73,30 @@ def login():
 		if error is None:
 			session.clear()
 			session["user_id"] = user["id"]
-			return redirect(url_for("index"))
+
+			return redirect(url_for("start"))
 
 		flash(error)
 
 	return render_template("auth/login.html")
+
+@bp.route("/projectselection", methods=("GET", "POST"))
+def set_current_project():
+	old_proj_id = None
+
+	user_id = session.get("user_id")
+	old_proj_id = query_db(statement="SELECT * FROM users WHERE id = ?", args=[user_id], one=True)["currentProject"]
+
+	if request.method == "POST":
+		project_id = request.form["projectId"]
+		project_req = query_db(statement="SELECT * FROM projects WHERE id = ?", args=[project_id], one=True)
+		project_title = project_req["title"]
+		project_faceted_title = project_req["facetedTitle"]
+		update_item(statement="UPDATE users SET currentProject = ? WHERE id = ?", args=(project_id, user_id))
+
+		g.current_project = query_db(statement="SELECT * FROM projects WHERE id = ?", args=[g.user["currentProject"]], one=True)
+
+		return {'old-proj-id': old_proj_id, 'new-proj-id': project_id, 'new-proj-title': project_title}
 
 @bp.before_app_request
 def load_logged_in_user():
@@ -72,10 +104,12 @@ def load_logged_in_user():
 
 	if user_id is None:
 		g.user = None
+		g.current_project = None
 	else:
 		g.user = query_db(statement="SELECT * FROM users WHERE id = ?", args=[user_id], one=True)
+		g.current_project = query_db(statement="SELECT * FROM projects WHERE id = ?", args=[g.user["currentProject"]], one=True)
 
 @bp.route("/logout")
 def logout():
 	session.clear()
-	return redirect(url_for("index"))
+	return redirect(url_for("start"))
