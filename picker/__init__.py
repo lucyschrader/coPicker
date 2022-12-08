@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
+HARVESTER_PATH = os.environ.get("HARVESTER_PATH")
+HARVEST_MODEL_PATH = os.environ.get("HARVEST_MODEL_PATH")
+
 import requests
 import json
 from flask import Flask, render_template, url_for, request, flash, g

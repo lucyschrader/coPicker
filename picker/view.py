@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.append("C:/Users/lucy.schrader/Documents/Scripts/coApiHarvest")
-import TePapaHarvester
-
 import functools
 from flask import (Blueprint, g, redirect, render_template, request, url_for, jsonify, flash, session)
 import os

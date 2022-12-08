@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
-sys.path.append("C:/Users/lucy.schrader/Documents/Scripts/coApiHarvest")
+from picker import HARVESTER_PATH
+sys.path.append(HARVESTER_PATH)
 import TePapaHarvester
 
 import functools
 from flask import (Blueprint, g, redirect, render_template, request, url_for, flash, session)
-import os
 import datetime
 import time
 from picker.db import get_db, write_new, query_db, update_item, delete_item

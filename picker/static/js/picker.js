@@ -51,11 +51,6 @@ window.addEventListener("load", () => {
 		sortByModified = document.getElementById("sort-new")
 		pageCount = Math.ceil(collSize / paginationLimit);
 
-		getPaginationNumbers();
-
-		prevButton = document.getElementById("pageprev");
-		nextButton = document.getElementById("pagenext");
-
 		setCurrentPage(1);
 
 		filterToDo.addEventListener("click", () => {
@@ -114,24 +109,6 @@ window.addEventListener("load", () => {
 			setCurrentPage(1);
 		})
 
-		prevButton.addEventListener("click", () => {
-			setCurrentPage(currentPage - 1);
-		});
-
-		nextButton.addEventListener("click", () => {
-			setCurrentPage(currentPage + 1);
-		});
-
-		document.querySelectorAll(".page-item").forEach((button) => {
-			const pageIndex = Number(button.getAttribute("page-index"));
-
-			if (pageIndex) {
-				button.addEventListener("click", () => {
-					setCurrentPage(pageIndex);
-				});
-			}
-		});
-
 	} else {
 		view = "cards"
 
@@ -142,6 +119,9 @@ window.addEventListener("load", () => {
 });
 
 async function setCurrentPage(pageNum) {
+	let spinnerZone = document.getElementById("spinner-zone")
+	spinnerZone.innerHTML = "<div class='d-flex justify-content-center'><div class='spinner-border' role='status'><span class='visually-hidden'>Loading...</span></div></div>"
+
 	currentPage = pageNum;
 	const collName = document.getElementById("collection-faceted-name").innerText;
 
@@ -175,6 +155,26 @@ async function setCurrentPage(pageNum) {
 	handleActivePageNumber();
 	handlePageButtonStatus();
 	hideExtraPageNumbers();
+
+	clickablePrevButton.addEventListener("click", () => {
+			setCurrentPage(currentPage - 1);
+		});
+
+	clickableNextButton.addEventListener("click", () => {
+		setCurrentPage(currentPage + 1);
+	});
+
+	document.querySelectorAll(".page-item").forEach((button) => {
+		const pageIndex = Number(button.getAttribute("page-index"));
+
+		if (pageIndex) {
+			button.addEventListener("click", () => {
+				setCurrentPage(pageIndex);
+			});
+		}
+	});
+
+	spinnerZone.innerHTML = ""
 
 	if (listItems.length > 0) {
 		let listHtml = ""
@@ -217,6 +217,8 @@ const appendPreviousButton = () => {
 
 	prevButton.appendChild(prevButtonLink);
 	paginationList.appendChild(prevButton);
+
+	clickablePrevButton = document.getElementById("pageprev")
 }
 
 const appendNextButton = () => {
@@ -231,6 +233,8 @@ const appendNextButton = () => {
 
 	nextButton.appendChild(nextButtonLink);
 	paginationList.appendChild(nextButton);
+
+	clickableNextButton = document.getElementById("pagenext")
 }
 
 const appendPageNumber = (index) => {
@@ -282,15 +286,15 @@ const filterOff = (button, message) => {
 
 const handlePageButtonStatus = () => {
 	if (currentPage === 1) {
-		disableButton(prevButton);
-	} else if (prevButton.classList.contains("disabled")) {
-		enableButton(prevButton);
+		disableButton(clickablePrevButton);
+	} else if (clickablePrevButton.classList.contains("disabled")) {
+		enableButton(clickablePrevButton);
 	}
 
 	if (pageCount === currentPage) {
-		disableButton(nextButton);
-	} else if (nextButton.classList.contains("disabled")) {
-		enableButton(nextButton);
+		disableButton(clickableNextButton);
+	} else if (clickableNextButton.classList.contains("disabled")) {
+		enableButton(clickableNextButton);
 	};
 };
 
@@ -306,6 +310,9 @@ const hideExtraPageNumbers = () => {
 }
 
 async function getCards() {
+	cardDiv.innerHTML = ""
+	cardDiv.innerHTML = "<div class='d-flex justify-content-center'><div class='spinner-border' role='status'><span class='visually-hidden'>Loading...</span></div></div>"
+
 	const collName = document.getElementById("collection-faceted-name").innerText;
 
 	let data = new FormData
@@ -372,18 +379,22 @@ async function saveSelection(url, record_irn, media_irn, selection, mode) {
 	updateCompleteCount(result)
 	updateIncludeExcludeCounts(result)
 	updateRecIncludeCount(result)
-
-	if (mode == "modal") {
-		updateModalSelection(media_irn, result)
-	}
-
-	updateSelection(record_irn, result)
 	
 	if (view == "cards") {
+		if (mode == "modal") {
+			updateModalSelection(media_irn, result)
+		}
+
+		updateSelection(record_irn, result)
+		
 		if (cardCountdown == 0) {
 			finishCardSet(record_irn)
 		}
 	} else if (view == "list") {
+		if (mode == "modal") {
+			updateModalSelection(media_irn, result)
+		}
+
 		let newRecInclude = result.new_rec_status_include
 
 		let recordBadge = document.getElementById("badge-" + record_irn)
@@ -404,7 +415,7 @@ async function saveSelection(url, record_irn, media_irn, selection, mode) {
 			if (recordBadge.classList.contains("text-bg-primary")) {
 				recordBadge.classList.remove("text-bg-primary")
 			}
-			if (recordInclude.classList.contains("text-bg-secondary")) {
+			if (recordBadge.classList.contains("text-bg-secondary")) {
 				recordBadge.classList.remove("text-bg-secondary")
 			}
 		}
@@ -423,8 +434,10 @@ const updateCompleteCount = (result) => {
 			recCheckedCountNum += 1;
 			recCheckedCount.innerText = recCheckedCountNum;
 
-			cardCountdown -= 1;
-			console.log(cardCountdown);
+			if (view == "cards") {
+				cardCountdown -= 1;
+				console.log(cardCountdown);
+			}
 		}
 	}
 }

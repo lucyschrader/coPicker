@@ -23,7 +23,7 @@
 
   <!-- CSS
   -------------------------------------------------- -->
-  {% if view == "cards" %}
+  {% if view == "list" or view == "cards" %}
   <link href="{{ url_for('static', filename='css/imageoverlay.css') }}" rel="stylesheet">
   {% endif %}
   <link href="{{ url_for('static', filename='css/picker.css') }}" rel="stylesheet">
@@ -82,7 +82,7 @@
               {% for db_coll in db_collections if db_coll.facetedTitle == coll %}
                 <li><a class="dropdown-item" href="/view/{{db_coll.facetedTitle}}">{{db_coll.title}}</a></li>
               {% else %}
-                <li><a class="dropdown-item" disabled>{{coll}}</a></li>
+                <li><a class="dropdown-item no-harvest text-muted" disabled>{{coll}}</a></li>
               {% endfor %}
             {% endfor %}
           </ul>
