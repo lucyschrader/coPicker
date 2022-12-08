@@ -95,7 +95,6 @@ CREATE TABLE projectrecords (
     recordId INTEGER,
     include TEXT,
     complete TEXT,
-    loaded TEXT,
     FOREIGN KEY(projectId) REFERENCES project(id),
     FOREIGN KEY(recordId) REFERENCES records(irn)
 );

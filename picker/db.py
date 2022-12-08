@@ -18,11 +18,10 @@ def init_db():
         db.executescript(f.read().decode('utf8'))
 
 @click.command('init-db')
-def init_db_command(test):
+def init_db_command():
     """Clear the existing data and create new tables."""
     init_db()
     click.echo('Initialized the database.')
-
 
 @click.command('create-user')
 @click.argument('username')
@@ -41,9 +40,10 @@ def create_user(username, password, role):
 @click.command('create-project')
 @click.argument('title')
 @click.argument('faceted_title')
-def create_project(title, faceted_title):
+@click.argument('base_url')
+def create_project(title, faceted_title, base_url):
     if query_db(statement="SELECT * FROM projects WHERE facetedTitle = ?", args=[faceted_title], one=True) == None:
-        write_new(statement="INSERT INTO projects (title, facetedTitle) VALUES (?, ?)", args=(title, faceted_title))
+        write_new(statement="INSERT INTO projects (title, facetedTitle, baseUrl) VALUES (?, ?, ?)", args=(title, faceted_title, base_url))
         click.echo("{} is in the db!".format(title))
     else:
         click.echo("Project already in db")

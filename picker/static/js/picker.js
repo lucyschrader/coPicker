@@ -1,6 +1,3 @@
-// Need to change how we're handing viewType/view
-let viewType;
-
 let paginationList;
 let prevButton;
 let nextButton;
@@ -29,19 +26,21 @@ let pageCount;
 
 let recCheckedCount;
 let recIncCount;
+let totalImgCount;
 let imgIncCount;
 let imgExcCount;
 
 let currentPage;
 
 window.addEventListener("load", () => {
+	collSize = document.getElementById("coll-size").innerText;
 	recCheckedCount = document.getElementById("recs-checked")
 	recIncCount = document.getElementById("recs-with-inclusions")
+	totalImgCount = document.getElementById("total-img-count")
 	imgIncCount = document.getElementById("img-included")
 	imgExcCount = document.getElementById("img-excluded")
 
-	if (window.location.pathname.split('/').slice(-1) == "list") {
-		viewType = "list";
+	if (view == "list") {
 		paginationList = document.getElementById("pagepick");
 		listDiv = document.getElementById("record-list")
 		listUl = document.getElementById("record-ul");
@@ -50,7 +49,6 @@ window.addEventListener("load", () => {
 		filterIncluded = document.getElementById("filter-included")
 		filterExcluded = document.getElementById("filter-excluded")
 		sortByModified = document.getElementById("sort-new")
-		collSize = document.getElementById("coll-size").innerText;
 		pageCount = Math.ceil(collSize / paginationLimit);
 
 		getPaginationNumbers();
@@ -135,7 +133,7 @@ window.addEventListener("load", () => {
 		});
 
 	} else {
-		viewType = "cards"
+		view = "cards"
 
 		cardDiv = document.getElementById("record-cards");
 
@@ -170,22 +168,13 @@ async function setCurrentPage(pageNum) {
 	let listModals = listBlocks["modals"]
 	let pageCount = listBlocks["page-count"]
 
-	handlePagination(recordData)
-	setInitialCounts(recordData)
+	setOnLoadCounts(recordData)
+	
+	getPaginationNumbers()
 
 	handleActivePageNumber();
 	handlePageButtonStatus();
 	hideExtraPageNumbers();
-
-	const startNo = (pageNum - 1) * paginationLimit;
-	const currRange = pageNum * paginationLimit;
-	const collName = document.getElementById("collection-faceted-name").innerText;
-
-
-	let responseJson = await response.json()
-
-	let listItems = responseJson["items"]
-	let listModals = responseJson["modals"]
 
 	if (listItems.length > 0) {
 		let listHtml = ""
@@ -207,10 +196,6 @@ async function setCurrentPage(pageNum) {
 		listUl.innerHTML = "<li class='list-group-item'>No matching images.</li>"
 	};
 };
-
-const handlePagination = (recordData) => {
-	// Um something goes here
-}
 
 const getPaginationNumbers = () => {
 	appendPreviousButton();
@@ -320,7 +305,6 @@ const hideExtraPageNumbers = () => {
 	}
 }
 
-
 async function getCards() {
 	const collName = document.getElementById("collection-faceted-name").innerText;
 
@@ -339,11 +323,12 @@ async function getCards() {
 	});
 
 	let responseJson = await response.json()
+	console.log(responseJson)
 
 	let recordData = responseJson["recordData"]
 	let cardBlocks = responseJson["htmlBlocks"]
 
-	setInitialCounts(recordData)
+	setOnLoadCounts(recordData)
 
 	if (cardBlocks == "none") {
 		cardDiv.innerHTML = "<p>No matching images.</p>"
@@ -361,8 +346,13 @@ async function getCards() {
 	};
 }
 
-const setInitialCounts = (recordData) => {
-	
+const setOnLoadCounts = (recordData) => {
+	collSize.innerText = recordData.total_records
+	recCheckedCount.innerText = recordData.recs_checked
+	recIncCount.innerHTML = recordData.recs_with_inclusions
+	totalImgCount.innerText = recordData.total_images
+	imgIncCount.innerHTML = recordData.img_included
+	imgExcCount.innerHTML = recordData.img_excluded
 }
 
 async function saveSelection(url, record_irn, media_irn, selection, mode) {

@@ -7,6 +7,7 @@ import TePapaHarvester
 import functools
 from flask import (Blueprint, g, redirect, render_template, request, url_for, jsonify, flash, session)
 import os
+import json
 from datetime import datetime
 import time
 from picker.db import get_db, write_new, query_db, update_item, delete_item
@@ -15,135 +16,189 @@ from picker.auth import login_required, admin_required
 bp = Blueprint('view', __name__, url_prefix='/view')
 
 class Records():
-	def __init__(self, collection=None, sort=None):
+	def __init__(self, collection=None, filter_to_todo=False, filter_to_included=False, filter_to_excluded=False, sort=None, mode=None):
 		self.collection = collection
-		self.record_selections = query_db(statement="SELECT * from projectrecords WHERE projectId = ?", args=[g.current_project["id"]], one=False)
-		self.media_selections = query_db(statement="SELECT * from projectmedia WHERE projectId = ?", args=[g.current_project["id"]], one=False)
-		self.loaded_records = query_db(statement="SELECT * FROM records r \
-			JOIN recordloaded rl \
-			ON r.irn = rl.recordId \
-			WHERE (r.collectionId = ?, rl.url LIKE '%'||?||'%')", args=(self.coll_id, g.current_project["baseUrl"]), one=False)
+		self.filter_to_todo = filter_to_todo
+		self.filter_to_included = filter_to_included
+		self.filter_to_excluded = filter_to_excluded
 		self.sort = sort
+		self.mode = mode
 		self.coll_id = None
 		self.coll_title = None
+		self.coll_records_irns = []
 		self.total_records = 0
 		self.total_images = 0
 		self.recs_checked = 0
 		self.recs_with_inclusions = 0
 		self.img_included = 0
 		self.img_excluded = 0
-		self.img_loaded = len(self.loaded_records)
-		self.records = None
+		self.records = []
 		self.errors = None
 
 		self.collection_info()
-		self.return_records()
+		self.count_selections()
+		if mode == "fill":
+			self.return_records()
 
 	def collection_info(self):
 		coll_data = query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[self.collection], one=True)
-		if coll_data == None:
-			self.errors = "Error: No collection data"
 		
 		self.coll_id = int(coll_data["id"])
+		print("Collection ID:", self.coll_id)
 		self.coll_title = coll_data["title"]
 
-		count_records = query_db(statement="SELECT COUNT(*) FROM records WHERE collectionId = ?", args=[self.coll_id], one=False)
-		for row in count_records:
-			self.total_records = row[0]
+		if self.sort:
+			coll_records = query_db(statement="SELECT * FROM records WHERE collectionId = ? ORDER BY {} DESC".format(self.sort), args=[self.coll_id], one=False)
+		else:
+			coll_records = query_db(statement="SELECT * FROM records WHERE collectionId = ?", args=[self.coll_id], one=False)
 
-		count_images = query_db(statement="SELECT COUNT(*) FROM records r \
+		print("Number of records in this collection:", len(coll_records))
+
+		for row in coll_records:
+			self.coll_records_irns.append(row["irn"])
+
+		self.total_records = len(coll_records)
+		print("Total records:", self.total_records)
+
+		self.total_images = len(query_db(statement="SELECT * FROM records r \
 			JOIN recordmedia rm \
 			ON r.irn = rm.recordId \
 			JOIN media m \
 			ON rm.mediaId = m.irn \
-			WHERE collectionId = ?", args=[self.coll_id], one=False)
-		for row in count_images:
-			self.total_images = row[0]
+			WHERE collectionId = ?", args=[self.coll_id], one=False))
 
-		for row in self.record_selections:
-			if row["include"] == "y":
-				self.recs_with_inclusions += 1
-			if row["complete"] == "y":
-				self.recs_checked += 1
+		print("Total images:", self.total_images)
 
-		for row in self.media_selections:
-			if row["include"] == "y":
-				self.img_included += 1
-			elif row["include"] == "n":
-				self.img_excluded += 1
+	def count_selections(self):
+		q_statement = "SELECT r.irn as recordIRN, m.irn as mediaIRN, pr.include as recordInclude, pr.complete as recordComplete, pm.include as mediaInclude, rl.url as recordLoadedUrl, pr.projectId as recordProjectId, pm.projectId as mediaProjectId FROM records r \
+			JOIN recordmedia rm \
+			ON r.irn = rm.recordId \
+			JOIN media m \
+			ON rm.mediaId = m.irn \
+			LEFT JOIN projectrecords pr \
+			ON r.irn = pr.recordId \
+			LEFT JOIN projectmedia pm \
+			ON rm.mediaId = pm.mediaId \
+			LEFT JOIN recordloaded rl \
+			ON r.irn = rl.recordId \
+			WHERE r.collectionId = ?"
+
+		db_records = query_db(statement=q_statement, args=[self.coll_id], one=False)
+
+		print("Number of rows without filters:", len(db_records))
+
+		project_base_url = g.current_project["baseUrl"]
+		records_with_related_urls = []
+
+		for row in db_records:
+			if row["recordProjectId"] == None or g.current_project["id"]:
+				if row["recordInclude"] == "y":
+					self.recs_with_inclusions += 1
+				if row["recordComplete"] == "y":
+					self.recs_checked += 1
+
+			if row["mediaProjectId"] == None or g.current_project["id"]:
+				if row["mediaInclude"] == "y":
+					self.img_included += 1
+				elif row["mediaInclude"] == "n":
+					self.img_excluded += 1
+
+			if row["recordLoadedUrl"] is not None:
+				if project_base_url in row["recordLoadedUrl"]:
+					if row["recordIRN"] not in records_with_related_urls:
+						records_with_related_urls.append(row["recordIRN"])
+						self.loaded_records += 1
 
 	def return_records(self):
+		q_where = " WHERE (r.collectionId = ?"
+		q_where_values = [self.coll_id]
+
+		if self.filter_to_todo == True:
+			q_where += " AND (pr.complete IS ? OR pr.complete = ?)"
+			q_where_values.append(None)
+			q_where_values.append("n")
+		if self.filter_to_included == True:
+			q_where += " AND pr.include = ?"
+			q_where_values.append("y")
+		if self.filter_to_excluded == True:
+			q_where += " AND pr.include = ?"
+			q_where_params.append("n")
+
+		q_statement = "SELECT r.irn as recordIRN, r.recordModified, r.title as recordTitle, r.dateLabel, r.dateValue, r.personLabel, m.irn as mediaIRN, p.irn as personIRN, p.title as personTitle, pr.include as recordInclude, pr.complete as recordComplete, pr.projectId as recordProjectId, pm.include as mediaInclude, pm.projectId as mediaProjectId, rl.url as recordLoadedUrl \
+			FROM records r \
+			JOIN recordmedia rm \
+			ON r.irn = rm.recordId \
+			JOIN media m \
+			ON rm.mediaId = m.irn \
+			LEFT JOIN projectrecords pr \
+			ON r.irn = pr.recordId \
+			LEFT JOIN projectmedia pm \
+			ON m.irn = pm.mediaId \
+			LEFT JOIN recordpeople rp \
+			ON r.irn = rp.recordId \
+			LEFT JOIN people p \
+			ON rp.personId = p.irn \
+			LEFT JOIN recordloaded rl \
+			ON r.irn = rl.recordId" + q_where + ")"
+
 		if self.sort:
-			query_statement = "SELECT * FROM records WHERE collectionId = ? ORDER BY {} DESC".format(self.sort)
-			response = query_db(statement=query_statement, args=[self.coll_id], one=False)
-		else:
-			response = query_db(statement="SELECT * FROM records WHERE collectionId = ?", args=[self.coll_id], one=False)
+			q_statement += " ORDER BY {} DESC".format(self.sort)
 
-		if response is not None:
-			records = [{k: record[k] for k in record.keys()} for record in response]
+		print(q_statement)
+		print(q_where_values)
 
-			for record in records:
-				record.update({"media": None, "people": None, "include": None, "checkComplete": "n"})
+		db_records = query_db(statement=q_statement, args=q_where_values, one=False)
+		print("Number of filtered rows:", len(db_records))
+		self.collate_records(db_records)
 
-				for row in self.record_selections:
-					if row["recordId"] == record["irn"]:
-						record.update({"include": row["include"]})
-
-				m_response = query_db(statement="SELECT * from media m \
-					JOIN recordmedia rm \
-					ON m.irn = rm.mediaId \
-					WHERE rm.recordId = ?", args=[record["irn"]], one=False)
-
-				if m_response is not None:
-					meds = [{k: med[k] for k in med.keys()} for med in m_response]
-					for med in meds:
-						med.update({"include": None})
-						total_media = len(meds)
-						checked_media = 0
-						for row in self.media_selections:
-							if row["mediaId"] == med["irn"]:
-								med.update({"include": row["include"]})
-								if row["include"] == "y":
-									checked_media += 1
-						if total_media == checked_media:
-							record.update({"checkComplete": "y"})
-					record.update({"media": meds})
-
-				p_response = query_db(statement="SELECT p.irn, p.title from people p \
-						JOIN recordpeople rp \
-						ON p.irn = rp.personId \
-						WHERE rp.recordId = ?", args=[record["irn"]], one=False)
-
-				if p_response is not None:
-					peeps = [{k: peep[k] for k in peep.keys()} for peep in p_response]
-					record.update({"people": peeps})
-
-			self.records = records
+	def collate_records(self, db_records):
+		for irn in self.coll_records_irns:
+			for row in db_records:
+				this_project = False
+				if row["recordProjectId"] == None or g.current_project["id"]:
+					this_project = True
+				if row["mediaProjectId"] == None or g.current_project["id"]:
+					this_project = True
+				if this_project == True:
+					record_irn = row["recordIRN"]
+					if record_irn == irn:
+						this_record_index = next((i for i, record in enumerate(self.records) if record["irn"] == record_irn), None)
+						print("Record index:", this_record_index)
+						if this_record_index == None:
+							this_record = {
+								"irn": record_irn,
+								"title": row["recordTitle"],
+								"dateLabel": row["dateLabel"],
+								"dateValue": row["dateValue"],
+								"personLabel": row["personLabel"],
+								"recordModified": row["recordModified"],
+								"media": [{"irn": row["mediaIRN"], "include": row["mediaInclude"]}],
+								"people": [{"irn": row["personIRN"], "title": row["personTitle"]}],
+								"include": row["recordInclude"],
+								"complete": row["recordComplete"],
+								"loaded": row["recordLoadedUrl"]
+								}
+							self.records.append(this_record)
+						else:
+							this_media_index = next((i for i, media in enumerate(self.records[this_record_index]["media"]) if media["irn"] == row["mediaIRN"]), None)
+							if this_media_index == None:
+								self.records[this_record_index]["media"].append({"irn": row["mediaIRN"], "include": row["mediaInclude"]})
+							this_person_index = next((i for i, person in enumerate(self.records[this_record_index]["people"]) if person["irn"] == row["personIRN"]), None)
+							if this_person_index == None:
+								self.records[this_record_index]["people"].append({"irn": row["personIRN"], "title": row["personTitle"]})
+		print("All records collated")
 
 @bp.route("/<collection>")
 def send_to_cards(collection):
-	return redirect(url_for("view.view_collection", collection=collection))
+	return redirect(url_for("view.view_collection", collection=collection, view="cards"))
 
-@bp.route("/<collection>/cards", methods=("GET", "POST"))
+@bp.route("/<collection>/<view>", methods=("GET", "POST"))
 @login_required
-def view_collection(collection):
-	recordData = Records(collection=collection)
+def view_collection(collection, view="cards"):
+	recordData = Records(collection=collection, mode="count")
 
 	if recordData.errors == None:
-		return render_template("view/records.html", recordData=recordData, view="cards")
-
-	else:
-		flash("Collection not harvested")
-		return redirect(url_for("harvest.harvest"))
-
-@bp.route("/<collection>/list", methods=("GET", "POST"))
-@login_required
-def view_collection_list(collection):
-	recordData = Records(collection=collection)
-
-	if recordData.errors == None:
-		return render_template("view/records.html", recordData=recordData, view="list")
-
+		return render_template("view/records.html", recordData=recordData, view=view)
 	else:
 		flash("Collection not harvested")
 		return redirect(url_for("harvest.harvest"))
@@ -157,36 +212,46 @@ def fill_page(collection):
 		view = request.form["view"]
 
 		if view == "list":
-			formatted_data = fill_list(request)
-		elif view == "cards"
-			formatted_data = fill_cards(request)
+			formatted_data = fill_list(request, collection)
+		elif view == "cards":
+			formatted_data = fill_cards(request, collection)
 
 		if formatted_data is not None:
 			recordData = formatted_data[0]
 			htmlBlocks = formatted_data[1]
-			return {"recordData": recordData; "htmlBlocks": htmlBlocks}
+			return {
+				"recordData": {
+					"collection": recordData.collection,
+					"coll_id": recordData.coll_id,
+					"coll_title": recordData.coll_title,
+					"total_records": recordData.total_records,
+					"total_images": recordData.total_images,
+					"recs_checked": recordData.recs_checked,
+					"recs_with_inclusions": recordData.recs_with_inclusions,
+					"img_included": recordData.img_included,
+					"img_excluded": recordData.img_excluded,
+				},
+				"errors": recordData.errors,
+				"htmlBlocks": htmlBlocks
+			}
 
-def fill_cards(request):
+	return "Error"
+
+def fill_cards(request, collection):
 	current_project_id = g.user["currentProject"]
 
 	size = int(request.form["size"])
 
-	recordData = Records(collection=collection, sort=None)
+	recordData = Records(collection=collection, filter_to_todo=True, sort=None, mode="fill")
 	records = recordData.records
+	print("Records for cards:", len(records))
 
 	cards = []
 	record_set = []
 	for i in range(0, len(records)):
 		if len(record_set) < size:
 			try:
-				this_record = records[i]
-				this_record_projectcheck = query_db(statement="SELECT * from projectrecords WHERE (recordId = ? AND projectId = ?)", args=(this_record["irn"], current_project_id), one=True)
-				if this_record_projectcheck == None:
-					record_set.append(this_record)
-				else:
-					if this_record_projectcheck["complete"] == "n":
-						record_set.append(this_record)
-
+				record_set.append(records[i])
 			except IndexError:
 				break
 		elif records[i] == records[-1]:
@@ -204,8 +269,9 @@ def fill_cards(request):
 
 	return (recordData, cards)
 
-def fill_list(request):
+def fill_list(request, collection):
 	current_project_id = g.user["currentProject"]
+	coll_id = query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[collection], one=True)["id"]
 
 	current_page = int(request.form["current-page"])
 	size = int(request.form["size"])
@@ -230,7 +296,7 @@ def fill_list(request):
 	if sort_new == "true":
 		sort = "recordModified"
 
-	recordData = Records(collection=collection, sort=sort)
+	recordData = Records(collection=collection, filter_to_todo=f_todo, filter_to_included=f_include, filter_to_excluded=f_exclude, sort=sort, mode="fill")
 	records = recordData.records
 
 	page_count = (len(records) / size)
@@ -241,29 +307,12 @@ def fill_list(request):
 	list_items = []
 	list_modals = []
 	record_set = []
+
 	for i in range(start, len(records)):
 		if len(record_set) < size:
+			this_record = records[i]
 			try:
-				this_record = records[i]
-				this_record_projectcheck = query_db(statement="SELECT * from projectrecords WHERE (recordId = ? AND projectId = ?)", args=(this_record["irn"], current_project_id), one=True)
-
-				if f_todo == True:
-					if this_record_projectcheck == None:
-						record_set.append(this_record)
-					else:
-						if this_record_projectcheck["complete"] == "n":
-							record_set.append(this_record)
-				
-				elif f_include == True:
-					if this_record_projectcheck["include"] == "y":
-						record_set.append(this_record)
-
-				elif f_exclude == True:
-					if this_record_projectcheck["include"] == "n":
-						record_set.append(this_record)
-
-				else:
-					record_set.append(this_record)
+				record_set.append(this_record)
 
 			except IndexError:
 				break

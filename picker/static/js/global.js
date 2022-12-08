@@ -1,4 +1,4 @@
-let view = "home"
+let view
 
 window.addEventListener("load", () => {
 	viewLabel = window.location.pathname.split('/').slice(-1)

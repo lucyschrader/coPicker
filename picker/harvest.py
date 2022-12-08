@@ -98,7 +98,7 @@ class DatabaseWriter():
 			if "related" in this_record:
 				for associated_link in this_record["related"]:
 					associated_url = associated_link["associatedUrl"]
-					if query_db(statement="SELECT * FROM recordloaded WHERE (recordId = ?, url = ?)", args=(irn, associated_url)) == None:
+					if query_db(statement="SELECT * FROM recordloaded WHERE (recordId = ? AND url = ?)", args=(irn, associated_url)) == None:
 						write_new(statement="INSERT INTO recordloaded (recordId, url) VALUES (?, ?)", args=(irn, associated_url))
 
 	def proc_coll(self, this_record):
@@ -371,7 +371,7 @@ def initial_harvest(collection):
 		DBwriter = DatabaseWriter(collection, harvest_mode)
 		DBwriter.process_irns(record_data)
 
-		return redirect(url_for("view.view_collection", collection=collection))
+		return redirect(url_for("view.send_to_cards", collection=collection))
 
 	coll_data = query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[collection], one=True)
 
