@@ -323,38 +323,9 @@ class RecordData():
 
 		self.data = self.harvester.harvest_from_list(resource_type=resource_type, irns=irns)
 
-@bp.route("/save", methods=("GET", "POST"))
-@login_required
-def harvest():
-	if request.method == "POST":
-		collection = request.form.get("collection-harvest")
-		error = None
-
-		if not collection:
-			error = "Collection is required"
-		else:
-			search = RecordData(mode="search", source=None, collection=collection)
-			record_data = search.data
-
-			DBwriter = DatabaseWriter()
-			DBwriter.process_irns(record_data)
-
-			return redirect(url_for("view.view_collection", collection=collection))
-
-		if error:
-			flash(error)
-
-	admin = False
-	user_id = session.get("user_id")
-	db_user = query_db(statement="SELECT * FROM users WHERE id = ?", args=[user_id], one=True)
-	if db_user["role"] == "admin":
-		admin = True
-
-	return render_template("harvest/save.html", admin=admin)
-
 @bp.route("/<collection>", methods=("GET", "POST"))
 @admin_required
-def initial_harvest(collection):
+def harvest(collection):
 	if request.method == "POST":
 		humanities = ["Art", "CollectedArchives", "History", "MuseumArchives", "PacificCultures", "Philatelic", "Photography", "RareBooks", "TaongaMāori"]
 		sciences = ["Archaeozoology", "Birds", "Crustacea", "Fish", "FossilVertebrates", "Geology", "Insects", "LandMammals", "MarineInvertebrates", "MarineMammals", "Molluscs", "Plants", "ReptilesAndAmphibians"]
@@ -377,6 +348,6 @@ def initial_harvest(collection):
 	coll_data = query_db(statement="SELECT * FROM collections WHERE facetedTitle = ?", args=[collection], one=True)
 
 	if coll_data == None:
-		return render_template("harvest/initial.html", collection=collection, harvest="new")
+		return render_template("harvest/harvestform.html", collection=collection, harvest="new")
 	else:
-		return render_template("harvest/initial.html", collection=collection, harvest="redo")
+		return render_template("harvest/harvestform.html", collection=collection, harvest="redo")

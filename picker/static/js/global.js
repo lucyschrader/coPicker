@@ -1,9 +1,27 @@
 let view
+let collName
+let clearCollButton
 
 window.addEventListener("load", () => {
 	viewLabel = window.location.pathname.split('/').slice(-1)
-	if (viewLabel == "list" || "cards") {
+
+	if (viewLabel == "list" || viewLabel == "cards") {
 		view = viewLabel
+		
+		collName = document.getElementById("collection-faceted-name").innerText
+		// clearCollButton not shown if user isn't admin, error in JS console
+		clearCollButton = document.getElementById("clear-collection")
+
+		window.addEventListener("beforeunload", () => {
+			fetch("/auth/clearbooking")
+				.then((response) => response.json())
+				.then((data) => console.log(data))
+		})
+
+		clearCollButton.addEventListener("click", () => {
+			clearCollButtonWarning()
+		})
+
 	} else {
 		view = "home"
 	}
@@ -40,4 +58,12 @@ async function changeProject(projectId) {
 	} else if (view == "cards") {
 		getCards()
 	}
+}
+
+async function clearCollButtonWarning() {
+	clearCollButton.classList.remove("btn-warning")
+	clearCollButton.classList.add("btn-danger")
+	clearCollButton.innerText = "Really delete selections?"
+	await new Promise(resolve => setTimeout(resolve, 1000))
+	clearCollButton.setAttribute("href", "/view/" + collName + "/clearcollection")
 }

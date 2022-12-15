@@ -9,11 +9,11 @@
       <div class="img-overlay">
         {% if record.media|length == 1 %}
         {% for image in record.media %}
-          <button type="button" class="img-overlay-choice deselect-record" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{record.irn}}, {{image.irn}}, 'n', 'card')">Exclude</button>
+          <button type="button" class="img-overlay-choice deselect-record" id="select-{{image.irn}}-n" onclick="saveSelection('/view/select', {{record.irn}}, {{image.irn}}, 'n', 'card')">Exclude</button>
           <button type="button" class="img-overlay-choice select-record" id="select-{{image.irn}}-y" onclick="saveSelection('/view/select', {{record.irn}}, {{image.irn}}, 'y', 'card')">Include</button>
         {% endfor %}
         {% else %}
-          <button type="button" class="img-overlay-choice overlay-modal-trigger" data-bs-toggle="modal" data-bs-target="#select-modal-{{record.irn}}">Check {{record.media|length}} images</button>
+          <button type="button" class="img-overlay-choice overlay-modal-trigger" data-bs-toggle="modal" data-bs-target="#select-modal-{{record.irn}}" id="select-{{record.irn}}-modaltrigger">Check {{record.media|length}} images</button>
         {% endif %}
       </div>
     </div>

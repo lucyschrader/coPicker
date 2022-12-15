@@ -39,3 +39,12 @@
 .dropdown-item.no-harvest:hover, .dropdown-item.no-harvest:focus {
 	background-color: inherit;
 }
+
+.collection-card {
+	padding-top: 1.5em;
+}
+
+.img-collection-card {
+	max-width: 250px;
+	object-fit: cover;
+}

@@ -115,7 +115,7 @@ window.addEventListener("load", () => {
 		cardDiv = document.getElementById("record-cards");
 
 		getCards()
-	}	
+	}
 });
 
 async function setCurrentPage(pageNum) {
@@ -123,7 +123,6 @@ async function setCurrentPage(pageNum) {
 	spinnerZone.innerHTML = "<div class='d-flex justify-content-center'><div class='spinner-border' role='status'><span class='visually-hidden'>Loading...</span></div></div>"
 
 	currentPage = pageNum;
-	const collName = document.getElementById("collection-faceted-name").innerText;
 
 	let data = new FormData
 	data.set("current-page", currentPage)
@@ -132,7 +131,7 @@ async function setCurrentPage(pageNum) {
 	data.set("filter-included", filterIncludedStatus)
 	data.set("filter-excluded", filterExcludedStatus)
 	data.set("sort-new", sortByModifiedStatus)
-	data.set("view", "list")
+	data.set("view", view)
 
 	let response = await fetch("/view/" + collName + "/page", {
 		method: "POST",
@@ -310,10 +309,11 @@ const hideExtraPageNumbers = () => {
 }
 
 async function getCards() {
+	fetch("/auth/clearbooking")
+		.then((response) => response.json())
+		.then((data) => console.log(data))
 	cardDiv.innerHTML = ""
 	cardDiv.innerHTML = "<div class='d-flex justify-content-center'><div class='spinner-border' role='status'><span class='visually-hidden'>Loading...</span></div></div>"
-
-	const collName = document.getElementById("collection-faceted-name").innerText;
 
 	let data = new FormData
 	data.set("start", 0)
@@ -322,7 +322,7 @@ async function getCards() {
 	data.set("filter-included", null)
 	data.set("filter-excluded", null)
 	data.set("sort-new", null)
-	data.set("view", "cards")
+	data.set("view", view)
 
 	let response = await fetch("/view/" + collName + "/page", {
 		method: "POST",
@@ -363,6 +363,10 @@ const setOnLoadCounts = (recordData) => {
 }
 
 async function saveSelection(url, record_irn, media_irn, selection, mode) {
+	let selectButton = document.getElementById("select-" + media_irn + "-" + selection)
+	let selectButtonText = selectButton.innerText
+	indicateSave(selectButton)
+
 	let data = new FormData()
 	data.set("record_irn", record_irn)
 	data.set("media_irn", media_irn)
@@ -375,6 +379,7 @@ async function saveSelection(url, record_irn, media_irn, selection, mode) {
 	let result = await response.json()
 
 	console.log(media_irn + " was successfully updated")
+	indicateSaveComplete(selectButton, selectButtonText)
 
 	updateCompleteCount(result)
 	updateIncludeExcludeCounts(result)
@@ -420,6 +425,19 @@ async function saveSelection(url, record_irn, media_irn, selection, mode) {
 			}
 		}
 	}
+}
+
+const indicateSave = (selectButton) => {
+	spinnerDiv = "<div class='spinner-grow' role='status'><span class='visually-hidden'>Saving...</span></div>"
+	selectButton.innerText = ""
+	selectButton.innerHTML = spinnerDiv
+}
+
+async function indicateSaveComplete (selectButton, selectButtonText) {
+	await new Promise(resolve => setTimeout(resolve, 1000))
+	selectButton.innerHTML = "Saved!"
+	await new Promise(resolve => setTimeout(resolve, 1000))
+	selectButton.innerText = selectButtonText
 }
 
 const updateCompleteCount = (result) => {
@@ -516,6 +534,7 @@ const updateSelection = (record_irn, result) => {
 	let newRecInclude = result.new_rec_status_include
 
 	let recordCard = document.getElementById("card-" + record_irn)
+
 	let cardSelectionIndicator = recordCard.querySelector(".select-indicator")
 
 	if (prevRecInclude == null) {

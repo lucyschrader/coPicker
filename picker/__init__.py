@@ -40,7 +40,9 @@ def create_app(test_config=None):
 	@app.route("/", methods=["GET","POST"])
 	def start():
 		if g.user:
-			return harvest.harvest()
+			for key in g.user.keys():
+				print(key, g.user[key])
+			return render_template("landing.html")
 		else:
 			cover_images = os.listdir("picker/static/images/covers/")
 			cover = "/images/covers/{}".format(random.choice(cover_images))
@@ -51,6 +53,8 @@ def create_app(test_config=None):
 		projects_collections = {
 			"db_projects": query_db(statement="SELECT * FROM projects"),
 			"coll_names": ["Archaeozoology", "Art", "Birds", "CollectedArchives", "Crustacea", "Fish", "FossilVertebrates", "Geology", "History", "Insects", "LandMammals", "MarineInvertebrates", "MarineMammals", "Molluscs", "MuseumArchives", "PacificCultures", "Philatelic", "Photography", "Plants", "RareBooks", "ReptilesAndAmphibians", "TaongaMāori"],
+			"coll_humanities": ["Art", "CollectedArchives", "History", "MuseumArchives", "PacificCultures", "Philatelic", "Photography", "RareBooks", "TaongaMāori"],
+			"coll_sciences": ["Archaeozoology", "Birds", "Crustacea", "Fish", "FossilVertebrates", "Geology", "Insects", "LandMammals", "MarineInvertebrates", "MarineMammals", "Molluscs", "Plants", "ReptilesAndAmphibians"],
 			"db_collections": query_db(statement="SELECT * FROM collections")
 		}
 		return projects_collections

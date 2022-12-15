@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Records{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+	<div class="row">
+		<div class="col-sm-6">
+			<h2 class="display-2">Humanities</h2>
+			{% for coll in coll_names if coll in coll_humanities %}
+				{% for db_coll in db_collections if db_coll.facetedTitle == coll %}
+				<div class="row collection-card">
+					<div class="col-sm-6">
+						<a href="/view/{{db_coll.facetedTitle}}"><img src="{{ url_for('static', filename='images/cards/')}}{{db_coll.facetedTitle}}.jpg" alt="" class="img-collection-card img-thumbnail" /></a>
+					</div>
+					<div class="col-sm-6">
+						<h3>{{db_coll.title}}</h3>
+						<p class="text-muted">Harvested {{db_coll.lastHarvested|truncate(10, True, '')}}</p>
+						<p><a href="/view/{{db_coll.facetedTitle}}">View {{db_coll.title}} records</a></p>
+						{% if g.user["role"] == "admin" %}
+						<p><a href="/harvest/{{db_coll.facetedTitle}}">Reharvest collection</a></p>
+						{% endif %}
+					</div>
+				</div>
+				{% else %}
+				<div class="row collection-card">
+					<div class="col-sm-6">
+						<img src="{{ url_for('static', filename='images/cards/')}}{{coll}}.jpg" alt="" class="img-collection-card img-thumbnail" />
+					</div>
+					<div class="col-sm-6">
+						<h3>{{coll}}</h3>
+						<p>Collection not harvested</p>
+						{% if g.user["role"] == "admin" %}
+						<p><a href="/harvest/{{coll}}">Harvest collection</a></p>
+						{% endif %}
+					</div>
+				</div>
+				{% endfor %}
+			{% endfor %}
+		</div>
+		<div class="col-sm-6">
+			<h2 class="display-2">Natural sciences</h2>
+			{% for coll in coll_names if coll in coll_sciences %}
+				{% for db_coll in db_collections if db_coll.facetedTitle == coll %}
+				<div class="row collection-card">
+					<div class="col-sm-6">
+						<a href="/view/{{db_coll.facetedTitle}}"><img src="{{ url_for('static', filename='images/cards/')}}{{db_coll.facetedTitle}}.jpg" alt="" class="img-collection-card img-thumbnail" /></a>
+					</div>
+					<div class="col-sm-6">
+						<h3>{{db_coll.title}}</h3>
+						<p><a href="/view/{{db_coll.facetedTitle}}">View {{db_coll.title}} records</a></p>
+						{% if g.user["role"] == "admin" %}
+						<p><a href="/harvest/{{db_coll.facetedTitle}}">Reharvest collection</a></p>
+						{% endif %}
+					</div>
+				</div>
+				{% else %}
+				<div class="row collection-card">
+					<div class="col-sm-6">
+						<img src="{{ url_for('static', filename='images/cards/')}}{{coll}}.jpg" alt="" class="img-collection-card img-thumbnail" />
+					</div>
+					<div class="col-sm-6">
+						<h3>{{coll}}</h3>
+						<p>Collection not harvested</p>
+						{% if g.user["role"] == "admin" %}
+						<p><a href="/harvest/{{coll}}">Harvest collection</a></p>
+						{% endif %}
+					</div>
+				</div>
+				{% endfor %}
+			{% endfor %}
+		</div>
+	</div>
+</div>
+{% endblock %}

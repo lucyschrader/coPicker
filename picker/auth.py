@@ -59,8 +59,9 @@ def register():
 @bp.route("/login", methods=("GET", "POST"))
 def login():
 	if request.method == "POST":
-		username = request.form["username"]
-		password = request.form["password"]
+		username = request.form["login-username"]
+		password = request.form["login-password"]
+		project_id = request.form["login-project"]
 		error = None
 
 		user = query_db(statement="SELECT * FROM users WHERE username = ?", args=[username], one=True)
@@ -73,6 +74,7 @@ def login():
 		if error is None:
 			session.clear()
 			session["user_id"] = user["id"]
+			update_item(statement="UPDATE users SET currentProject = ? WHERE id = ?", args=(project_id, user["id"]))
 
 			return redirect(url_for("start"))
 
@@ -113,3 +115,11 @@ def load_logged_in_user():
 def logout():
 	session.clear()
 	return redirect(url_for("start"))
+
+@bp.route("/clearbooking")
+def clear_booked_records():
+	print("Clearing records!")
+	booked_records = query_db(statement="SELECT * FROM bookedrecords WHERE (projectId = ? AND userId = ?)", args=(g.current_project["id"], g.user["id"]), one=False)
+	if booked_records:
+		delete_item(statement="DELETE FROM bookedrecords WHERE (projectId = ? AND userId = ?)", args=(g.current_project["id"], g.user["id"]))
+	return {"message": "Success"}

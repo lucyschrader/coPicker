@@ -101,19 +101,29 @@
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('auth.logout') }}">Log Out</a>
           </li>
-        {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('auth.login') }}">Log In</a>
-          </li>
         {% endif %}
+        <li class="nav-item">
+          <a disabled class="nav-link" data-bs-toggle="modal" data-bs-target="#helptext">How to pick</a>
+        </li>
       </ul>
     </div>
   </div>
 </nav>
   {% block content %}
   {% endblock %}
+
+<div class="modal fade" tabindex="-1" id="helptext" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5">How to pick</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Here we have lots of good advice. Yay!</p>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

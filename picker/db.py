@@ -96,14 +96,14 @@ def update_item(statement, args=()):
         db.execute(statement, args)
         db.commit()
 
-        print("DB operation: ", statement, args, " updated in db")
+#        print("DB operation: ", statement, args, " updated in db")
 
     except db.IntegrityError:
         return None
 
 def delete_item(statement, args):
     db = get_db()
-    db.execute(statement, (args,))
+    db.execute(statement, args)
     db.commit()
 
     print("DB operation: ", statement, args, " deleted from db")

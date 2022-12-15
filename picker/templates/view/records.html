@@ -22,8 +22,13 @@
       <h2><span id="total-img-count">{{recordData.total_images}}</span> images</h2>
       <p><span id="img-included">{{recordData.img_included}}</span> included, <span id="img-excluded">{{recordData.img_excluded}}</span> excluded</p>
     </div>
+    {% if g.user["role"] == "admin" %}
     <div class="ms-auto">
-      <a href="/export/{{recordData.collection}}" role="button" class="btn btn-warning">Export this collection</a>
+      <a href="#" role="button" class="btn btn-warning" id="clear-collection">Clear all selections</a>
+    </div>
+    {% endif %}
+    <div class="ms-auto">
+      <a href="/export/{{recordData.collection}}" role="button" class="btn btn-primary">Export this collection</a>
     </div>
   </div>
 

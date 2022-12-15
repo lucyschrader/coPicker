@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS recordpeople;
 DROP TABLE IF EXISTS recordloaded;
 DROP TABLE IF EXISTS projectrecords;
 DROP TABLE IF EXISTS projectmedia;
+DROP TABLE IF EXISTS bookedrecords;
 
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +96,7 @@ CREATE TABLE projectrecords (
     recordId INTEGER,
     include TEXT,
     complete TEXT,
-    FOREIGN KEY(projectId) REFERENCES project(id),
+    FOREIGN KEY(projectId) REFERENCES projects(id),
     FOREIGN KEY(recordId) REFERENCES records(irn)
 );
 
@@ -104,6 +105,16 @@ CREATE TABLE projectmedia (
     projectId INTEGER,
     mediaId INTEGER,
     include TEXT,
-    FOREIGN KEY(projectId) REFERENCES project(id),
+    FOREIGN KEY(projectId) REFERENCES projects(id),
     FOREIGN KEY(mediaId) REFERENCES media(irn)
 );
+
+CREATE TABLE bookedrecords (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projectId INTEGER,
+    userId INTEGER,
+    recordId INTEGER,
+    FOREIGN KEY(projectId) REFERENCES projects(id),
+    FOREIGN KEY(userId) REFERENCES users(id),
+    FOREIGN KEY(recordId) REFERENCES records(irn)
+)
