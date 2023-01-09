@@ -17,12 +17,14 @@ def init_db():
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
 
+# From CMD: flask --app picker init-db
 @click.command('init-db')
 def init_db_command():
     """Clear the existing data and create new tables."""
     init_db()
     click.echo('Initialized the database.')
 
+# From CMD: flask --app picker create-user [username] [password] --role="admin/user"
 @click.command('create-user')
 @click.argument('username')
 @click.argument('password')
@@ -37,6 +39,7 @@ def create_user(username, password, role):
     else:
         click.echo("Username already taken.")
 
+# From CMD: flask --app picker create-project [title] [faceted_title] [base_url]
 @click.command('create-project')
 @click.argument('title')
 @click.argument('faceted_title')

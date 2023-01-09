@@ -1,25 +1,7 @@
-<li class="list-group-item">
+<li class="list-group-item list-modal-trigger" data-bs-toggle="modal" data-bs-target="#select-modal-{{record.irn}}">
   <div class="hstack gap-3">
     <div>
-      <div class="fw-bold">{{record.title|e|truncate(80, True, "...", 0)}}</div>
-      <span class="text-muted">{{record.irn}}</span>
-      <span class="badge rounded-pill text-bg-dark">{% for image in record.media %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} total{% endif %}{% endfor %}</span>
-      <span class="badge rounded-pill text-bg-primary">{% for image in record.media if image.include == 'y' %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} included{% endif %}{% endfor %}</span>
-      <span class="badge rounded-pill text-bg-warning">{% for image in record.media if image.include == 'n' %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} excluded{% endif %}{% endfor %}</span>
-    </div>
-    <div class="ms-auto" id="thumbstrip-{{record.irn}}">
-      {% for image in record.media %}
-        {% if loop.index < 5 %}
-          <img src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" style="max-height: 40px; max-width: 40px;" />
-        {% endif %}
-      {% endfor %}
-      {% if record.media|length > 4 %}
-        <img alt="More images." src="{{ url_for('static', filename='images/apps.svg') }}" width="24" height="24" />
-      {% endif %}
-    </div>
-    <div class="vr"></div>
-    <div>
-        <span class="badge rounded-pill text-bg-{% if record.include == 'y' %}primary{% elif record.include == 'n' %}warning{% else %}secondary{% endif %} list-modal-trigger" id="badge-{{record.irn}}" data-bs-toggle="modal" data-bs-target="#select-modal-{{record.irn}}">
+      <span class="badge rounded-pill text-bg-{% if record.include == 'y' %}success{% elif record.include == 'n' %}danger{% else %}dark{% endif %}" id="badge-{{record.irn}}">
         {% if record.include == 'y' %}
           <img src="{{ url_for('static', filename='images/check-circle.svg') }}" width="24" height="24" />
         {% elif record.include == 'n' %}
@@ -27,12 +9,24 @@
         {% else %}
           <img src="{{ url_for('static', filename='images/question.svg') }}" width="24" height="24" />
         {% endif %}
-        {% if record.media|length == 1 %}
-        Check 1 image
-        {% else %}
-        Check {{record.media|length}} images
+      </span>
+      <span class="fw-bold">{{record.title|e|truncate(80, True, "...", 0)}}</span>
+      <span class="text-muted">{{record.irn}}</span>
+      <span class="thumbstrip-{{record.irn}} ps-2">
+        {% for image in record.media %}
+          {% if loop.index < 5 %}
+            <img src="https://media.tepapa.govt.nz/collection/{{image.irn}}/thumb" style="max-height: 48px; max-width: 48px;" />
+          {% endif %}
+        {% endfor %}
+        {% if record.media|length > 4 %}
+          <img alt="More images." src="{{ url_for('static', filename='images/apps.svg') }}" width="32" height="32" />
         {% endif %}
-        </span>
+      </span>
+    </div>
+    <div class="ms-auto">
+      <span class="badge rounded-pill text-bg-dark">{% for image in record.media %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} total{% endif %}{% endfor %}</span>
+      <span class="badge rounded-pill text-bg-primary">{% for image in record.media if image.include == 'y' %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} included{% endif %}{% endfor %}</span>
+      <span class="badge rounded-pill text-bg-warning">{% for image in record.media if image.include == 'n' %}{% if loop.last %}{% set count_im = loop.index %}{{count_im}} excluded{% endif %}{% endfor %}</span>
     </div>
   </div>
 </li>

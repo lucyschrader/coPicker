@@ -197,6 +197,7 @@ async function setCurrentPage(pageNum) {
 };
 
 const getPaginationNumbers = () => {
+	paginationList.innerHTML = ""
 	appendPreviousButton();
 	for (let i = 1; i <= pageCount; i++) {
 		appendPageNumber(i);
@@ -406,22 +407,22 @@ async function saveSelection(url, record_irn, media_irn, selection, mode) {
 		let icon = recordBadge.firstElementChild
 
 		if (newRecInclude == "y") {
-			recordBadge.classList.add("text-bg-primary")
+			recordBadge.classList.add("text-bg-success")
 			icon.setAttribute("src", "/static/images/check-circle.svg")
-			if (recordBadge.classList.contains("text-bg-warning")) {
-				recordBadge.classList.remove("text-bg-warning")
+			if (recordBadge.classList.contains("text-bg-danger")) {
+				recordBadge.classList.remove("text-bg-danger")
 			}
-			if (recordBadge.classList.contains("text-bg-secondary")) {
-				recordBadge.classList.remove("text-bg-secondary")
+			if (recordBadge.classList.contains("text-bg-dark")) {
+				recordBadge.classList.remove("text-bg-dark")
 			}
 		} else if (newRecInclude == "n") {
-			recordBadge.classList.add("text-bg-warning")
+			recordBadge.classList.add("text-bg-danger")
 			icon.setAttribute("src", "/static/images/x-circle.svg")
-			if (recordBadge.classList.contains("text-bg-primary")) {
-				recordBadge.classList.remove("text-bg-primary")
+			if (recordBadge.classList.contains("text-bg-success")) {
+				recordBadge.classList.remove("text-bg-success")
 			}
-			if (recordBadge.classList.contains("text-bg-secondary")) {
-				recordBadge.classList.remove("text-bg-secondary")
+			if (recordBadge.classList.contains("text-bg-dark")) {
+				recordBadge.classList.remove("text-bg-dark")
 			}
 		}
 	}

@@ -125,7 +125,7 @@ class Records():
 			q_where_values.append("y")
 		if self.filter_to_excluded == True:
 			q_where += " AND pr.include = ?"
-			q_where_params.append("n")
+			q_where_values.append("n")
 
 		q_statement = "SELECT r.irn as recordIRN, r.recordModified, r.title as recordTitle, r.dateLabel, r.dateValue, r.personLabel, m.irn as mediaIRN, p.irn as personIRN, p.title as personTitle, pr.include as recordInclude, pr.complete as recordComplete, pr.projectId as recordProjectId, pm.include as mediaInclude, pm.projectId as mediaProjectId, rl.url as recordLoadedUrl \
 			FROM records r \

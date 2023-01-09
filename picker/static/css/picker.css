@@ -48,3 +48,11 @@
 	max-width: 250px;
 	object-fit: cover;
 }
+
+.list-modal-trigger {
+	cursor: pointer;
+}
+
+.helptext-toggle {
+	cursor: pointer
+}

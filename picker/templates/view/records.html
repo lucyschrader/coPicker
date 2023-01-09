@@ -37,25 +37,22 @@
     </div>
   {% else %}
     <div class="row">
-      <h2>Filters</h2>
       <div class="col">
-        <div class="btn-group" role="group" aria-label="Buttons for filtering">
-          <button type="button" class="btn btn-primary" id="filter-todo">See items needing checking</button>
-          <button type="button" class="btn btn-primary" id="filter-included">See records with inclusions</button>
-          <button type="button" class="btn btn-primary" id="filter-excluded">See excluded records</button>
-        </div>
-        <button type="button" class="btn btn-outline-secondary" id="sort-new">Sort by last modified</button>
+        <button type="button" class="btn btn-primary btn-sm" id="filter-todo">See items needing checking</button>
+        <button type="button" class="btn btn-primary btn-sm" id="filter-included">See records with inclusions</button>
+        <button type="button" class="btn btn-primary btn-sm" id="filter-excluded">See excluded records</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="sort-new">Sort by last modified</button>
       </div>
     </div>
 
-    <div class="row" id="spinner-zone"></div>
+    <div id="spinner-zone"></div>
 
-    <div class="row" id="record-list">
+    <div id="record-list" class="pt-2">
       <ul id="record-ul" class="list-group">
       </ul>
     </div>
 
-    <div class="row" id="record-modals">
+    <div id="record-modals">
     </div>
 
     <nav aria-label="pagination">

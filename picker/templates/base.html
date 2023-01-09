@@ -58,57 +58,57 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" id="proj-dropdown">{% if g.current_project != none %}{{ g.current_project["title"]|e }}{% else %}Select a project{% endif %}</a>
-            <ul class="dropdown-menu">
-              {% if g.current_project %}
-                {% for proj in db_projects %}
-                  {% if proj.id == g.current_project["id"] %}
-                    <li><a class="dropdown-item choose-proj" disabled id="proj-{{proj.id}}">{{proj.title|e}}</a></li>
-                  {% else %}
-                    <li><a class="dropdown-item choose-proj" id="proj-{{proj.id}}" onclick="changeProject({{proj.id}})">{{proj.title|e}}</a></li>
-                  {% endif %}
-                {% endfor %}
-              {% else %}
-                {% for proj in db_projects %}
-                  <li><a class="dropdown-item choose-proj" id="proj-{{proj.id}}" onclick="changeProject({{proj.id}})">{{proj.title}}</a></li>
-                {% endfor %}
-              {% endif %}
-            </ul>
-        </li>
-        {% if view == "list" or view == "cards" %}
-        <li class="nav-item dropdown"><span id="collection-faceted-name" hidden>{{recordData.collection}}</span>
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">{{recordData.coll_title}}</a>
           <ul class="dropdown-menu">
-            {% for coll in coll_names %}
-              {% for db_coll in db_collections if db_coll.facetedTitle == coll %}
-                <li><a class="dropdown-item" href="/view/{{db_coll.facetedTitle}}">{{db_coll.title}}</a></li>
-              {% else %}
-                <li><a class="dropdown-item no-harvest text-muted" disabled>{{coll}}</a></li>
+            {% if g.current_project %}
+              {% for proj in db_projects %}
+                {% if proj.id == g.current_project["id"] %}
+                  <li><a class="dropdown-item choose-proj" disabled id="proj-{{proj.id}}">{{proj.title|e}}</a></li>
+                {% else %}
+                  <li><a class="dropdown-item choose-proj" id="proj-{{proj.id}}" onclick="changeProject({{proj.id}})">{{proj.title|e}}</a></li>
+                {% endif %}
               {% endfor %}
-            {% endfor %}
+            {% else %}
+              {% for proj in db_projects %}
+                <li><a class="dropdown-item choose-proj" id="proj-{{proj.id}}" onclick="changeProject({{proj.id}})">{{proj.title}}</a></li>
+              {% endfor %}
+            {% endif %}
           </ul>
         </li>
-        <li class="nav-item">
-          <a href="/view/{{recordData.collection}}" class="nav-link{% if view == 'cards' %} active{% endif %}">Make selections</a>
+        <li class="nav-item" hidden>
+          <span id="collection-faceted-name">{{recordData.collection}}</span>
         </li>
-        <li class="nav-item">
-          <a href="/view/{{recordData.collection}}/list" class="nav-link{% if view == 'list' %} active{% endif %}">View list</a>
-        </li>
+        {% if view == "list" or view == "cards" %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">{{recordData.coll_title}}</a>
+            <ul class="dropdown-menu">
+              {% for coll in coll_names %}
+                {% for db_coll in db_collections if db_coll.facetedTitle == coll %}
+                  <li><a class="dropdown-item" href="/view/{{db_coll.facetedTitle}}">{{db_coll.title}}</a></li>
+                {% else %}
+                  <li><a class="dropdown-item no-harvest text-muted" disabled>{{coll}}</a></li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link{% if view == 'cards' %} active{% endif %}" href="/view/{{recordData.collection}}/cards">Make selections</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link{% if view == 'list' %} active{% endif %}" href="/view/{{recordData.collection}}/list">View list</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link helptext-toggle" data-bs-toggle="modal" data-bs-target="#helptext">How to pick</a>
+          </li>
+        </ul>
         {% endif %}
         {% if g.user %}
-          <li class="nav-item">
-            <a disabled class="nav-link">{{ g.user['username'] }}</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('auth.logout') }}">Log Out</a>
-          </li>
+          <span class="navbar-text pe-2">{{ g.user['username'] }}</span>
+          <a class="nav-link" href="{{ url_for('auth.logout') }}">Log Out</a>
         {% endif %}
-        <li class="nav-item">
-          <a disabled class="nav-link" data-bs-toggle="modal" data-bs-target="#helptext">How to pick</a>
-        </li>
-      </ul>
     </div>
   </div>
 </nav>
+
   {% block content %}
   {% endblock %}
 
@@ -116,11 +116,26 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 class="modal-title fs-5">How to pick</h2>
+        <h2 class="modal-title fs-5">How to pick images</h2>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Here we have lots of good advice. Yay!</p>
+        <h3>Save selections from the collections</h3>
+        <p>This tool lets you work through records in each of Te Papa's collections, saving the records and images you want to include in your project. When you've picked everything you want, you can export a CSV file that includes the record and image IRNs for your selections.</p>
+        <p>This tool shows records that have images associated in EMu, and only if those images are:</p>
+        <ul>
+          <li>Published</li>
+          <li>Freely downloadable</li>
+          <li>At least 2500px wide on their shortest side</li>
+        </ul>
+        <p>Collections need to be harvested before you can select from them. If a collection you want to review isn't available, talk to Lucy.</p>
+        <h3>Cards</h3>
+        <p>The card view shows you four records at a time. When you mouse over each one, it'll either let you click to include or exclude the image (if it's the only one on the record), or to open a pop-up that lets you decide what to do with each image.</p>
+        <p>When you've included or excluded everything on those four records, the page will refresh, giving you four more until the whole collection's been reviewed.</p>
+        <h3>List</h3>
+        <p>The list view shows you the status of every record in the collection, including how many images they have and whether they've been checked. Click the filter buttons to narrow down the list or click [thing] to make your selections.</p>
+        <h3>Need a hand?</h3>
+        <p>Talk to Lucy if something's broken, you want some help or a new project set up, or want to provide some feedback.</p>
       </div>
     </div>
   </div>
