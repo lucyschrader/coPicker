@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-HARVESTER_PATH = os.environ.get("HARVESTER_PATH")
-HARVEST_MODEL_PATH = os.environ.get("HARVEST_MODEL_PATH")
+HARVESTER_PATH = os.environ.get("HARVESTER-PATH")
+HARVEST_MODEL_PATH = os.environ.get("HARVEST-MODEL-PATH")
 
 import requests
 import json
@@ -15,7 +15,7 @@ from picker.db import get_db, write_new, query_db, update_item, delete_item
 def create_app(test_config=None):
 	app = Flask(__name__, instance_relative_config=True)
 	app.config.from_mapping(
-		SECRET_KEY='dev',
+		SECRET_KEY=os.environ.get("PICKER-SECRET-KEY"),
 		DATABASE = os.path.join(app.instance_path, "picker.sqlite"))
 
 	if test_config is None:
