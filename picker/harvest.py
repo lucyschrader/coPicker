@@ -2,8 +2,7 @@
 
 import os
 import sys
-from picker import HARVESTER_PATH
-sys.path.append(HARVESTER_PATH)
+sys.path.append(os.environ.get("HARVESTER-PATH"))
 import TePapaHarvester
 
 import functools
