@@ -74,10 +74,10 @@
             {% endif %}
           </ul>
         </li>
+        {% if view == "list" or view == "cards" %}
         <li class="nav-item" hidden>
           <span id="collection-faceted-name">{{recordData.collection}}</span>
         </li>
-        {% if view == "list" or view == "cards" %}
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">{{recordData.coll_title}}</a>
             <ul class="dropdown-menu">
