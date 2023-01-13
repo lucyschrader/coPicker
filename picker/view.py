@@ -21,7 +21,6 @@ class Records():
 		self.view = session.get("view")
 		self.coll_id = None
 		self.coll_title = None
-		self.coll_records_irns = []
 		self.total_records = 0
 		self.total_images = 0
 		self.recs_checked = 0
@@ -52,9 +51,6 @@ class Records():
 
 		if self.quiet == False:
 			print("Number of records in this collection:", len(coll_records))
-
-		for row in coll_records:
-			self.coll_records_irns.append(row["irn"])
 
 		self.total_records = len(coll_records)
 
@@ -155,8 +151,12 @@ class Records():
 		return db_records
 
 	def collate_records(self, db_records, start, size):
-		for i in range(start, len(self.coll_records_irns)):
-			record_irn = self.coll_records_irns[i]
+		db_records_irns = []
+		for row in db_records:
+			if row["recordIRN"] not in db_records_irns:
+				db_records_irns.append(row["recordIRN"])
+		for i in range(start, len(db_records_irns)):
+			record_irn = db_records_irns[i]
 			if len(self.records) < size:
 				try:
 					if self.view == "cards":
@@ -170,13 +170,13 @@ class Records():
 
 				except IndexError:
 					break
-			elif db_records[i] == db_records[-1]:
+			elif db_records_irns[i] == db_records_irns[-1]:
 				break
 			else:
 				break
 
 		if len(self.records) == 0:
-			print("Oh no")
+			print("No records left")
 
 	def collate_this_record(self, db_records, record_irn):
 		for row in filter(lambda row: row["recordIRN"] == record_irn, db_records):
@@ -244,7 +244,7 @@ def fill_page(collection):
 		if formatted_data is not None:
 			recordData = formatted_data[0]
 			htmlBlocks = formatted_data[1]
-			print("Records checked:", recordData.recs_checked)
+#			print("Records checked:", recordData.recs_checked)
 			return {
 				"recordData": {
 					"collection": recordData.collection,
